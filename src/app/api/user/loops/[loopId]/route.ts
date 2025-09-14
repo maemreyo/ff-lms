@@ -12,7 +12,7 @@ export async function OPTIONS() {
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { loopId: string } }
+  { params }: { params: Promise<{ loopId: string }> }
 ) {
   try {
     const supabase = getSupabaseServer(request)
@@ -26,7 +26,7 @@ export async function DELETE(
       return corsResponse({ error: 'Unauthorized' }, 401)
     }
 
-    const { loopId } = params
+    const { loopId } = await params
 
     if (!loopId) {
       return corsResponse(

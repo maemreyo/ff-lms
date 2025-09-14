@@ -13,100 +13,7 @@ export interface PromptTemplate {
   }
 }
 
-// Vocabulary Analysis Prompt
-export const vocabularyAnalysisPrompt: PromptTemplate = {
-  system: `You are an expert ESL/EFL vocabulary analyzer. Analyze the given transcript text and extract useful vocabulary for English language learners.
 
-Focus on:
-1. Important words that ESL students should learn
-2. Useful phrases and expressions
-3. Context-appropriate definitions
-4. Difficulty assessment
-
-Return a JSON object with the exact structure:
-{
-  "words": [
-    {
-      "word": "string",
-      "partOfSpeech": "noun|verb|adjective|adverb|etc",
-      "pronunciation": "string (IPA or simple)",
-      "definition": "clear English definition",
-      "definitionVi": "Vietnamese translation",
-      "synonyms": ["array of synonyms"],
-      "antonyms": ["array of antonyms"],
-      "example": "example sentence",
-      "difficulty": "beginner|intermediate|advanced",
-      "frequency": 1-5
-    }
-  ],
-  "phrases": [
-    {
-      "phrase": "string",
-      "type": "idiom|expression|collocation",
-      "definition": "clear English definition",
-      "definitionVi": "Vietnamese translation", 
-      "example": "example usage",
-      "difficulty": "beginner|intermediate|advanced",
-      "frequency": 1-5
-    }
-  ],
-  "totalWords": "number",
-  "uniqueWords": "number",
-  "difficultyLevel": "beginner|intermediate|advanced",
-  "suggestedFocusWords": ["most important words to focus on"]
-}`,
-
-  userTemplate: (transcriptText: string) => {
-    return `Analyze this transcript for ESL vocabulary learning:
-
-${transcriptText}
-
-Extract 10-15 important words and 5-8 useful phrases. Focus on words that are:
-- Commonly used in English
-- Appropriate for intermediate ESL learners  
-- Have clear, teachable meanings
-- Would be useful in daily conversation
-
-Provide Vietnamese translations for definitions.`
-  },
-
-  config: {
-    maxTokens: 8000,
-    temperature: 0.2
-  }
-}
-
-// Transcript Summary Prompt
-export const transcriptSummaryPrompt: PromptTemplate = {
-  system: `You are an expert content summarizer specializing in educational content for ESL/EFL learners.
-
-Create a clear, concise summary that helps language learners understand the main content.
-
-Return a JSON object with this exact structure:
-{
-  "summary": "2-3 sentence summary in simple English",
-  "keyPoints": ["array of 3-5 main points"],
-  "topics": ["array of main topics discussed"],
-  "difficulty": "beginner|intermediate|advanced"
-}`,
-
-  userTemplate: (transcriptText: string) => {
-    return `Summarize this transcript for ESL learners:
-
-${transcriptText}
-
-Focus on:
-- Main ideas and key information
-- Simple, clear language
-- Important topics covered
-- Overall difficulty level for language learners`
-  },
-
-  config: {
-    maxTokens: 4000,
-    temperature: 0.3
-  }
-}
 
 // Conversation Questions Prompt (Main prompt for question generation)
 export const conversationQuestionsPrompt: PromptTemplate = {
@@ -143,28 +50,43 @@ Please generate multiple-choice questions with the following criteria:
 **5. Explanations for Learning:**
    - Provide a clear and concise explanation for why the correct answer is right.
    - Use simple language in explanations that entry-level students can understand.
+   - Include clickable timeframe references in explanations using format: [MM:SS-MM:SS]
+   - Example: "The answer is found at [01:15-01:22] where the speaker mentions..."
+   - These timeframe references will become clickable links to jump to that moment in the video
    - Briefly explain why the other options are incorrect, if it adds learning value.
 
 **6. JSON Output Format:**
    - Format your response as a valid JSON object with the exact structure below.
    - Generate the EXACT number of questions requested for each difficulty level.
+   - **CRITICAL:** Options array should contain ONLY the answer text, NO letter prefixes like "A)", "B)", etc.
 
-**7. Timestamp Reference:**
-   - For each question, include a 'timestamp' field indicating the start time (in seconds) of the most relevant transcript segment. This helps learners locate the context.
+**7. Context Reference:**
+   - For each question, include a 'context' object.
+   - This object must contain 'startTime' and 'endTime' (in seconds) of the most relevant transcript segment.
+   - It must also include the 'text' of that segment. This helps learners locate and review the exact context.
 
 {
   "questions": [
     {
-      "question": "Question text here?",
-      "options": ["Option A", "Option B", "Option C", "Option D"],
+      "question": "What did the speaker say about the weather?",
+      "options": ["It was sunny", "It was raining", "It was cold", "It was windy"],
       "correctAnswer": "A",
-      "explanation": "Explanation of why A is correct and why others might be wrong.",
+      "explanation": "The speaker mentions sunny weather at [01:15-01:22] when describing the day.",
       "difficulty": "easy",
       "type": "specific_detail",
-      "timestamp": 15
+      "context": {
+        "startTime": 75.2,
+        "endTime": 82.5,
+        "text": "It was a beautiful sunny day when we went to the park."
+      }
     }
   ]
 }
+
+**IMPORTANT FORMAT NOTES:**
+- Options array: ["Answer text", "Answer text", "Answer text", "Answer text"]
+- DO NOT use: ["A) Answer text", "B) Answer text", "C) Answer text", "D) Answer text"]
+- The system will automatically assign A, B, C, D labels in the UI
 
 **Types to use:** "main_idea", "specific_detail", "vocabulary_in_context", "inference", "speaker_tone", "language_function"
 **Difficulties to use:** "easy", "medium", "hard"
@@ -213,9 +135,12 @@ Duration: ${formatTime(context.loop.endTime - context.loop.startTime)}
 - Use simple, everyday vocabulary that entry-level students know
 - Avoid complex or shocking words that make questions seem too difficult
 - Make questions approachable and accessible
+- Include context object with startTime, endTime, and text for each question
+- Add timeframe references like [MM:SS-MM:SS] in explanations to show where evidence can be found
 - Generate EXACTLY the number specified for each difficulty level
+- **OPTIONS FORMAT:** Use ["Answer text", "Answer text", "Answer text", "Answer text"] NOT ["A) Answer", "B) Answer", etc.]
 
-Transcript:
+Transcript (with timestamps):
 ${transcriptContent}`
   },
 
@@ -386,38 +311,53 @@ Please generate multiple-choice questions for a SINGLE DIFFICULTY LEVEL with the
 **5. Explanations for Learning:**
    - Provide a clear and concise explanation for why the correct answer is right.
    - Use simple language in explanations that entry-level students can understand.
+   - Include clickable timeframe references in explanations using format: [MM:SS-MM:SS]
+   - Example: "The answer is found at [01:15-01:22] where the speaker mentions..."
+   - These timeframe references will become clickable links to jump to that moment in the video
    - Briefly explain why the other options are incorrect, if it adds learning value.
 
 **6. JSON Output Format:**
    - Format your response as a valid JSON object with the exact structure below.
-   - Generate EXACTLY 6 questions for the specified difficulty level.
+   - **CRITICAL:** Options array should contain ONLY the answer text, NO letter prefixes like "A)", "B)", etc.
 
-**7. Timestamp Reference:**
-   - For each question, include a 'timestamp' field indicating the start time (in seconds) of the most relevant transcript segment. This helps learners locate the context.
+**7. Context Reference:**
+   - For each question, include a 'context' object.
+   - This object must contain 'startTime' and 'endTime' (in seconds) of the most relevant transcript segment.
+   - It must also include the 'text' of that segment. This helps learners locate and review the exact context.
 
 {
   "questions": [
     {
-      "question": "Question text here?",
-      "options": ["Option A", "Option B", "Option C", "Option D"],
+      "question": "What did the speaker say about the weather?",
+      "options": ["It was sunny", "It was raining", "It was cold", "It was windy"],
       "correctAnswer": "A",
-      "explanation": "Explanation of why A is correct and why others might be wrong.",
+      "explanation": "The speaker mentions sunny weather at [01:15-01:22] when describing the day.",
       "difficulty": "easy",
       "type": "specific_detail",
-      "timestamp": 15
+      "context": {
+        "startTime": 15.2,
+        "endTime": 20.5,
+        "text": "The relevant segment of the transcript text goes here."
+      }
     }
   ]
 }
 
+**IMPORTANT FORMAT NOTES:**
+- Options array: ["Answer text", "Answer text", "Answer text", "Answer text"]
+- DO NOT use: ["A) Answer text", "B) Answer text", "C) Answer text", "D) Answer text"]
+- The system will automatically assign A, B, C, D labels in the UI
+
 **Types to use:** "main_idea", "specific_detail", "vocabulary_in_context", "inference", "speaker_tone", "language_function"
 **Difficulties to use:** "easy", "medium", "hard"
 
-**IMPORTANT:** Generate EXACTLY 6 questions at the specified difficulty level to ensure optimal quality and AI response consistency.`,
+**IMPORTANT:** Generate questions ONLY for the specified difficulty level. Make sure each question includes proper context object and timeframe references in explanations.`,
 
   userTemplate: (context: {
     loop: SavedLoop
     transcript?: string
     difficulty: 'easy' | 'medium' | 'hard'
+    questionCount?: number
     segments?: Array<{ text: string; start: number; duration: number }>
   }) => {
     const formatTime = (seconds: number): string => {
@@ -426,6 +366,8 @@ Please generate multiple-choice questions for a SINGLE DIFFICULTY LEVEL with the
       return `${mins}:${secs.toString().padStart(2, '0')}`
     }
 
+    const questionCount = context.questionCount || 6
+    
     const transcriptContent = context.segments
       ? context.segments
           .map(segment => {
@@ -435,24 +377,25 @@ Please generate multiple-choice questions for a SINGLE DIFFICULTY LEVEL with the
           .join('\n')
       : context.transcript
 
-    const difficultyDescriptions = {
-      easy: 'simple, everyday vocabulary - finding explicitly stated information',
-      medium: 'familiar words, common expressions - connecting ideas and understanding context',
-      hard: 'advanced comprehension - deep inference, tone analysis, and language function'
-    }
+    return `Generate exactly ${questionCount} ${context.difficulty} questions from this transcript (formatted with timestamps):
 
-    return `Based on the following YouTube video transcript, generate exactly 6 comprehension questions at the **${context.difficulty.toUpperCase()}** difficulty level.
-
-**TARGET DIFFICULTY:** ${context.difficulty} (${difficultyDescriptions[context.difficulty]})
-**REQUIRED:** Exactly 6 questions
+**DIFFICULTY TARGET:** ${context.difficulty}
+**QUESTION COUNT:** ${questionCount}
 
 Video Title: ${context.loop.videoTitle || 'YouTube Video'}
 Segment: ${formatTime(context.loop.startTime)} to ${formatTime(context.loop.endTime)}
+Duration: ${formatTime(context.loop.endTime - context.loop.startTime)}
 
-**TRANSCRIPT:**
-${transcriptContent}
+**IMPORTANT REMINDERS:**
+- Generate EXACTLY ${questionCount} questions with difficulty level "${context.difficulty}"
+- Include context object with startTime, endTime, and text for each question
+- Add timeframe references like [MM:SS-MM:SS] in explanations to show where evidence can be found
+- Use simple, everyday vocabulary that entry-level students know
+- Make questions approachable and accessible
+- **OPTIONS FORMAT:** Use ["Answer text", "Answer text", "Answer text", "Answer text"] NOT ["A) Answer", "B) Answer", etc.]
 
-Generate exactly 6 questions at the **${context.difficulty}** level. Focus on quality over quantity - each question should be well-crafted and appropriate for the specified difficulty level.`
+Transcript (with timestamps):
+${transcriptContent}`
   },
 
   config: {
@@ -461,113 +404,17 @@ Generate exactly 6 questions at the **${context.difficulty}** level. Focus on qu
   }
 }
 
-// Detail-Focused Listening Questions Prompt
-export const detailFocusedListeningPrompt: PromptTemplate = {
-  system: `You are an expert ESL/EFL instructor specializing in detail-focused listening skills. Your goal is to help students develop the ability to catch specific information while listening to English content.
 
-Focus primarily on questions that test:
-- **Specific Details:** Who, what, when, where, how many, how much
-- **Factual Information:** Numbers, dates, names, locations, quantities
-- **Sequential Information:** First, then, next, finally
-- **Comparative Information:** More than, less than, different from
-
-Generate multiple-choice questions that require students to listen carefully for explicit details mentioned in the transcript. Use simple, clear language in both questions and options.
-
-**Question Type Priorities:**
-   - **Specific Detail:** Who, what, when, where, why? (Primary focus - 60% of questions)
-   - **Factual Information:** Numbers, dates, names, locations, quantities (25% of questions)
-   - **Sequential Information:** Order of events, steps, processes (15% of questions)
-
-**Quality of Options:**
-   - Each question must have 4 options (A, B, C, D).
-   - The correct answer must be explicitly stated in the transcript.
-   - Incorrect options (distractors) should be plausible details that might confuse students.
-   - Use simple, everyday language in all options.
-
-**JSON Output Format:**
-{
-  "questions": [
-    {
-      "question": "Question text here?",
-      "options": ["Option A", "Option B", "Option C", "Option D"],
-      "correctAnswer": "A",
-      "explanation": "Explanation of why A is correct.",
-      "difficulty": "easy",
-      "type": "specific_detail",
-      "timestamp": 15
-    }
-  ]
-}
-
-**Types to use:** "specific_detail", "factual_information", "sequential_information"
-**Difficulties to use:** "easy", "medium", "hard"`,
-
-  userTemplate: (context: {
-    loop: SavedLoop
-    transcript?: string
-    preset?: DifficultyPreset
-    segments?: Array<{ text: string; start: number; duration: number }>
-  }) => {
-    const formatTime = (seconds: number): string => {
-      const mins = Math.floor(seconds / 60)
-      const secs = Math.floor(seconds % 60)
-      return `${mins}:${secs.toString().padStart(2, '0')}`
-    }
-
-    // Default to largest preset (15 questions) to ensure we generate enough for all presets
-    const distribution = context.preset || { easy: 5, medium: 6, hard: 4 }
-    const totalQuestions = distribution.easy + distribution.medium + distribution.hard
-
-    const transcriptContent = context.segments
-      ? context.segments
-          .map(segment => {
-            const endTime = segment.start + segment.duration
-            return `[${formatTime(segment.start)}-${formatTime(endTime)}] ${segment.text}`
-          })
-          .join('\n')
-      : context.transcript
-
-    return `Based on the following YouTube video transcript, generate exactly ${totalQuestions} detail-focused listening questions with this specific difficulty distribution:
-
-**REQUIRED DISTRIBUTION:**
-- Easy: ${distribution.easy} questions (simple, explicit details)
-- Medium: ${distribution.medium} questions (specific facts and numbers)  
-- Hard: ${distribution.hard} questions (sequential and comparative information)
-
-**TOTAL: ${totalQuestions} questions**
-
-Video Title: ${context.loop.videoTitle || 'YouTube Video'}
-Segment: ${formatTime(context.loop.startTime)} to ${formatTime(context.loop.endTime)}
-Duration: ${formatTime(context.loop.endTime - context.loop.startTime)}
-
-**IMPORTANT FOCUS:**
-- Focus on explicit details that are clearly stated in the transcript
-- Ask about specific numbers, names, dates, locations mentioned
-- Test understanding of sequence and order of events
-- Use simple vocabulary that students can understand
-- Generate EXACTLY the number specified for each difficulty level
-
-Transcript:
-${transcriptContent}`
-  },
-
-  config: {
-    maxTokens: 64000,
-    temperature: 0.2
-  }
-}
-
-// Export all prompts
+// Export only used prompts
 export const prompts = {
-  vocabularyAnalysis: vocabularyAnalysisPrompt,
-  transcriptSummary: transcriptSummaryPrompt,
   conversationQuestions: conversationQuestionsPrompt,
-  singleDifficultyQuestions: singleDifficultyQuestionsPrompt,
-  detailFocusedListening: detailFocusedListeningPrompt
+  singleDifficultyQuestions: singleDifficultyQuestionsPrompt
 }
 
 // Export default
-export default {
+const aiPromptsModule = {
   prompts,
   PromptManager
 }
+
+export default aiPromptsModule

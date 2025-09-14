@@ -116,6 +116,7 @@ export function QuestionReviewList({
           {results.results.map((result: QuestionResult, index: number) => {
             const timestamp = formatVideoTimestamp(result.timeStart)
             const videoLink = getVideoLink(result.videoUrl, result.timeStart)
+            const hasTimeframe = result.timeStart !== undefined
 
             return (
               <div key={result.questionId} className="group">
@@ -154,23 +155,32 @@ export function QuestionReviewList({
                         </Badge>
                       </div>
 
-                      {/* Video timestamp link */}
-                      {timestamp && (
+                      {/* Enhanced Video timestamp display */}
+                      {hasTimeframe && (
                         <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="text-xs">
-                            <Clock className="mr-1 h-3 w-3" />
-                            {timestamp}
-                            {result.timeEnd && ` - ${formatVideoTimestamp(result.timeEnd)}`}
-                          </Badge>
+                          <div className="flex items-center gap-1">
+                            <Badge variant="outline" className="text-xs bg-blue-50 border-blue-200">
+                              <Clock className="mr-1 h-3 w-3 text-blue-600" />
+                              <span className="text-blue-800">
+                                {timestamp}
+                                {result.timeEnd && ` - ${formatVideoTimestamp(result.timeEnd)}`}
+                              </span>
+                            </Badge>
+                            {result.timeEnd && result.timeStart && (
+                              <Badge variant="secondary" className="text-xs">
+                                {Math.round((result.timeEnd - result.timeStart) / 1000)}s
+                              </Badge>
+                            )}
+                          </div>
                           {videoLink && (
                             <Button
                               size="sm"
                               variant="outline"
-                              className="h-6 px-2 text-xs"
+                              className="h-7 px-2 text-xs bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200 hover:from-blue-100 hover:to-blue-150 text-blue-700"
                               onClick={() => window.open(videoLink, '_blank')}
                             >
                               <Play className="mr-1 h-3 w-3" />
-                              Watch
+                              Watch Segment
                             </Button>
                           )}
                         </div>
@@ -228,12 +238,20 @@ export function QuestionReviewList({
                         )}
                       </div>
 
-                      {/* Explanation with clickable timeframe references */}
+                      {/* Enhanced explanation with better timeframe visibility */}
                       {result.explanation && showCorrectAnswers && (
                         <Alert className="border-blue-200 bg-blue-50">
                           <AlertDescription className="text-blue-800">
-                            <div className="space-y-1">
-                              <p className="text-xs font-medium text-blue-700">Explanation:</p>
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2">
+                                <p className="text-xs font-medium text-blue-700">Explanation:</p>
+                                {hasTimeframe && (
+                                  <Badge variant="outline" className="text-xs bg-blue-100 border-blue-300">
+                                    <Clock className="mr-1 h-2.5 w-2.5" />
+                                    Referenced content
+                                  </Badge>
+                                )}
+                              </div>
                               <RenderedExplanation
                                 explanation={result.explanation}
                                 videoUrl={result.videoUrl}

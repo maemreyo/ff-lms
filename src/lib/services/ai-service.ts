@@ -359,24 +359,66 @@ export class AIService {
     preset?: DifficultyPreset,
     options?: QuestionGenerationOptions
   ): Promise<GeneratedQuestions> {
-    // Import AI prompts dynamically to avoid circular dependencies
-    const { prompts, PromptManager } = await import('./ai-prompts')
-    const template = prompts.conversationQuestions
-
-    // Default to largest preset (15 questions) to ensure we have enough for all presets
+    // Default to balanced preset for mixed difficulty questions
     const defaultPreset = { easy: 5, medium: 6, hard: 4 }
     const actualPreset = preset || defaultPreset
     const totalQuestions = actualPreset.easy + actualPreset.medium + actualPreset.hard
 
-    // Use segments if provided, otherwise fallback to transcript
-    // This avoids duplication since segments contain timeframe-specific content
-    const promptData =
-      options?.segments && options.segments.length > 0
+    let messages: any[]
+    let config: any
+
+    // Check if custom prompt is provided
+    if (options?.customPrompt) {
+      console.log('🎯 Using custom prompt for conversation question generation')
+      
+      const customPrompt = options.customPrompt
+
+      // Format time helper
+      const formatTime = (seconds: number): string => {
+        const mins = Math.floor(seconds / 60)
+        const secs = Math.floor(seconds % 60)
+        return `${mins}:${secs.toString().padStart(2, '0')}`
+      }
+
+      // Build transcript with timestamps if segments are available
+      let transcriptWithTimestamps = transcript
+      if (options?.segments && options.segments.length > 0) {
+        transcriptWithTimestamps = options.segments.map((segment, index) => 
+          `[${formatTime(segment.start)}-${formatTime(segment.start + segment.duration)}] ${segment.text}`
+        ).join('\n')
+      }
+
+      // Substitute template variables in user_template
+      const userPrompt = customPrompt.user_template
+        .replace(/\{\{totalQuestions\}\}/g, totalQuestions.toString())
+        .replace(/\{\{easyCount\}\}/g, actualPreset.easy.toString())
+        .replace(/\{\{mediumCount\}\}/g, actualPreset.medium.toString())
+        .replace(/\{\{hardCount\}\}/g, actualPreset.hard.toString())
+        .replace(/\{\{videoTitle\}\}/g, loop.videoTitle || 'YouTube Video')
+        .replace(/\{\{transcriptWithTimestamps\}\}/g, transcriptWithTimestamps)
+
+      messages = [
+        { role: 'system', content: customPrompt.system_prompt },
+        { role: 'user', content: userPrompt }
+      ]
+
+      config = {
+        maxTokens: customPrompt.config?.maxTokens || 16000,
+        temperature: customPrompt.config?.temperature || 0.3
+      }
+    } else {
+      // Use default prompt template
+      const { prompts, PromptManager } = await import('./ai-prompts')
+      const template = prompts.conversationQuestions
+
+      // Use segments if provided, otherwise fallback to transcript
+      const promptData = options?.segments && options.segments.length > 0
         ? { loop, segments: options.segments, preset: actualPreset }
         : { loop, transcript, preset: actualPreset }
 
-    const messages = PromptManager.buildMessages(template, promptData)
-    const config = PromptManager.getConfig(template)
+      messages = PromptManager.buildMessages(template, promptData)
+      config = PromptManager.getConfig(template)
+    }
 
     try {
       const response = await this.chat(messages, config)
@@ -516,8 +558,8 @@ export class AIService {
 
       // Use segments if provided, otherwise fallback to transcript
       const promptData = options?.segments && options.segments.length > 0
-        ? { loop, segments: options.segments, difficulty }
-        : { loop, transcript, difficulty }
+        ? { loop, segments: options.segments, difficulty, questionCount: targetQuestionCount }
+        : { loop, transcript, difficulty, questionCount: targetQuestionCount }
 
       messages = PromptManager.buildMessages(template, promptData)
       config = PromptManager.getConfig(template)
@@ -529,16 +571,36 @@ export class AIService {
     console.log('\nUser Message:', messages.find(m => m.role === 'user')?.content)
     console.log('=== END PROMPT LOG ===\n')
 
-    // Retry mechanism for generating the correct number of questions
+    // Enhanced retry mechanism with progressive approach
     let attempts = 0
-    const maxAttempts = 3
+    const maxAttempts = 5 // Increased attempts
     let finalQuestions: any[] = []
+    let totalGenerated = 0
 
     while (attempts < maxAttempts && finalQuestions.length < targetQuestionCount) {
       attempts++
       
       try {
-        const response = await this.chat(messages, config)
+        // Calculate how many questions we still need
+        const questionsNeeded = targetQuestionCount - finalQuestions.length
+        
+        // For attempts 2+, be more explicit about what we need
+        let adjustedMessages = [...messages]
+        if (attempts > 1) {
+          const systemPrompt = adjustedMessages[0].content
+          const userPrompt = adjustedMessages[1].content
+          
+          adjustedMessages[1].content = `${userPrompt}\n\n🚨 CRITICAL: You MUST generate exactly ${questionsNeeded} questions with difficulty level "${difficulty}". Previous attempts generated insufficient questions. Ensure each question has proper structure with 4 options A-D and matches the requested difficulty level exactly.`
+          
+          // Also enhance system prompt for clarity
+          adjustedMessages[0].content = `${systemPrompt}\n\nIMPORTANT: Generate exactly the requested number of questions. Each question must have difficulty level "${difficulty}". Return valid JSON with questions array containing exactly ${questionsNeeded} questions.`
+        }
+
+        const response = await this.chat(adjustedMessages, {
+          ...config,
+          temperature: Math.max(0.1, (config.temperature || 0.3) - (attempts - 1) * 0.05) // Reduce randomness with each attempt
+        })
+        
         const parsedResponse = PromptManager.parseJSONResponse(response.content)
 
         // Validate response structure
@@ -547,54 +609,59 @@ export class AIService {
         }
 
         const questions = parsedResponse.questions
+        totalGenerated += questions.length
 
-        // Filter questions by the correct difficulty level and add to our collection
+        // Filter questions by the correct difficulty level and validate structure
         const correctDifficultyQuestions = questions.filter((q: any) => 
           q.difficulty === difficulty && 
           q.question && 
+          q.question.trim().length > 10 && // Must have substantial question text
           Array.isArray(q.options) && 
-          q.options.length === 4
+          q.options.length === 4 &&
+          q.options.every((opt: string) => opt && opt.trim().length > 0) && // All options must have content
+          ['A', 'B', 'C', 'D'].includes(q.correctAnswer) // Valid correct answer
         )
 
         // Add new questions to our collection, avoiding duplicates
         for (const newQuestion of correctDifficultyQuestions) {
           if (finalQuestions.length >= targetQuestionCount) break
           
-          // Simple duplicate check based on question text
-          const isDuplicate = finalQuestions.some(existing => 
-            existing.question.toLowerCase().trim() === newQuestion.question.toLowerCase().trim()
-          )
+          // Enhanced duplicate check based on question text similarity
+          const questionText = newQuestion.question.toLowerCase().trim()
+          const isDuplicate = finalQuestions.some(existing => {
+            const existingText = existing.question.toLowerCase().trim()
+            // Check for exact match or high similarity
+            return existingText === questionText || 
+                   (existingText.length > 20 && questionText.length > 20 && 
+                    existingText.includes(questionText.substring(0, 20)) ||
+                    questionText.includes(existingText.substring(0, 20)))
+          })
           
           if (!isDuplicate) {
             finalQuestions.push(newQuestion)
           }
         }
 
-        console.log(`Attempt ${attempts}: Generated ${correctDifficultyQuestions.length} valid ${difficulty} questions, total collected: ${finalQuestions.length}/${targetQuestionCount}`)
+        console.log(`Attempt ${attempts}: Generated ${questions.length} total, ${correctDifficultyQuestions.length} valid ${difficulty} questions, collected: ${finalQuestions.length}/${targetQuestionCount}`)
 
         // If we have enough questions, break out of the loop
         if (finalQuestions.length >= targetQuestionCount) {
           break
         }
 
-        // If this is not the last attempt and we still need more questions, modify the prompt
-        if (attempts < maxAttempts && finalQuestions.length < targetQuestionCount) {
-          const remaining = targetQuestionCount - finalQuestions.length
-          console.log(`Need ${remaining} more ${difficulty} questions, retrying...`)
-          
-          // Update the user message to request the remaining questions
-          if (options?.customPrompt) {
-            const updatedUserPrompt = messages[1].content.replace(
-              new RegExp(`${targetQuestionCount}.*?questions`, 'i'),
-              `${remaining} additional ${difficulty} questions`
-            )
-            messages[1].content = updatedUserPrompt + `\n\nIMPORTANT: Generate exactly ${remaining} questions with difficulty level "${difficulty}". Do not repeat any questions similar to those already generated.`
-          }
+        // If we're consistently getting wrong difficulty or poor quality, adjust approach
+        if (attempts >= 2 && correctDifficultyQuestions.length === 0) {
+          console.warn(`Attempt ${attempts}: No valid ${difficulty} questions generated. AI may be struggling with difficulty requirement.`)
         }
 
       } catch (error: any) {
         console.warn(`Attempt ${attempts} failed:`, error.message)
         if (attempts === maxAttempts) {
+          // If we have some questions but not enough, use what we have
+          if (finalQuestions.length > 0) {
+            console.warn(`Using ${finalQuestions.length} questions instead of requested ${targetQuestionCount} after ${maxAttempts} attempts`)
+            break
+          }
           throw new Error(`Question generation failed after ${maxAttempts} attempts: ${error.message}`)
         }
       }
@@ -604,11 +671,11 @@ export class AIService {
     finalQuestions = finalQuestions.slice(0, targetQuestionCount)
 
     if (finalQuestions.length === 0) {
-      throw new Error(`Failed to generate any valid ${difficulty} questions after ${maxAttempts} attempts`)
+      throw new Error(`Failed to generate any valid ${difficulty} questions after ${maxAttempts} attempts (total AI responses: ${totalGenerated})`)
     }
 
     if (finalQuestions.length < targetQuestionCount) {
-      console.warn(`Only generated ${finalQuestions.length} out of ${targetQuestionCount} requested ${difficulty} questions`)
+      console.warn(`Generated ${finalQuestions.length} out of ${targetQuestionCount} requested ${difficulty} questions after ${attempts} attempts`)
     }
 
     console.log(`Generated ${finalQuestions.length} ${difficulty} questions (requested: ${targetQuestionCount})`)
@@ -641,7 +708,7 @@ export class AIService {
             'language_function'
           ].includes(q.type)
             ? q.type
-            : 'main_idea',
+            : 'specific_detail', // Default to specific_detail for better learning
           timestamp:
             q.timestamp ??
             loop.startTime + (index * (loop.endTime - loop.startTime)) / finalQuestions.length
@@ -766,6 +833,86 @@ export class AIService {
   updateConfig(newConfig: Partial<AIConfig>): void {
     this.config = aiConfigSchema.parse({ ...this.config, ...newConfig })
     this.initializeProviders()
+  }
+
+  /**
+   * Fetch custom prompt from database by ID
+   */
+  static async fetchCustomPrompt(customPromptId: string, supabaseClient?: any): Promise<CustomPrompt | null> {
+    if (!customPromptId) return null
+    
+    try {
+      if (!supabaseClient) {
+        console.warn('No Supabase client provided for custom prompt fetch')
+        return null
+      }
+
+      // Remove 'custom-' prefix if present
+      const cleanId = customPromptId.replace('custom-', '')
+      
+      const { data: promptData, error: promptError } = await supabaseClient
+        .from('custom_prompts')
+        .select('system_prompt, user_template, config')
+        .eq('id', cleanId)
+        .eq('is_active', true)
+        .single()
+
+      if (promptError) {
+        console.warn('Failed to fetch custom prompt:', promptError)
+        return null
+      }
+
+      if (!promptData) {
+        console.warn('Custom prompt not found:', customPromptId)
+        return null
+      }
+
+      console.log('✅ Custom prompt loaded:', customPromptId)
+      return {
+        system_prompt: promptData.system_prompt,
+        user_template: promptData.user_template,
+        config: promptData.config || { maxTokens: 16000, temperature: 0.3 }
+      }
+    } catch (error) {
+      console.error('Error fetching custom prompt:', error)
+      return null
+    }
+  }
+
+  /**
+   * Enhanced question generation with automatic custom prompt resolution
+   */
+  async generateQuestionsWithCustomPrompt(
+    loop: SavedLoop,
+    transcript: string,
+    difficulty: 'easy' | 'medium' | 'hard',
+    customPromptId?: string,
+    questionCount?: number,
+    segments?: Array<{ text: string; start: number; duration: number }>,
+    supabaseClient?: any
+  ): Promise<GeneratedQuestions> {
+    let customPrompt: CustomPrompt | undefined = undefined
+
+    // Fetch custom prompt if ID is provided
+    if (customPromptId) {
+      const fetchedPrompt = await AIService.fetchCustomPrompt(customPromptId, supabaseClient)
+      customPrompt = fetchedPrompt || undefined
+      if (!customPrompt) {
+        console.warn(`Custom prompt ${customPromptId} not found, falling back to default`)
+      }
+    }
+
+    // Use the existing method with custom prompt
+    return this.generateSingleDifficultyQuestions(
+      loop,
+      transcript,
+      difficulty,
+      {
+        segments,
+        customPrompt,
+        questionCount: questionCount || 6
+      }
+    )
   }
 
   // Get current configuration (without sensitive data)

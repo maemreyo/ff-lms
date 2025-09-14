@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
 
   try {
     // Use admin service key to bypass RLS entirely
-    const { createClient } = require('@supabase/supabase-js')
+    const { createClient } = await import('@supabase/supabase-js')
     const adminSupabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SERVICE_ROLE_KEY!, // Use service role key
@@ -71,30 +71,29 @@ export async function GET(request: NextRequest) {
       }
     )
     
-    const { searchParams } = new URL(request.url)
-    
-    const category = searchParams.get('category')
-    const active_only = searchParams.get('active_only') === 'true'
-    
-    // Build query with filters using the service role client
-    let query = adminSupabase.from('custom_prompts').select('*')
-    
-    if (category) {
-      query = query.eq('category', category)
-    }
-    
-    if (active_only) {
-      query = query.eq('is_active', true)
-    }
-    
-    const { data: prompts, error } = await query.order('created_at', { ascending: false })
+    const { data: prompts, error } = await adminSupabase
+      .from('custom_prompts')
+      .select('*')
+      .order('created_at', { ascending: false })
 
     if (error) {
       console.error('Error fetching custom prompts:', error)
       return corsResponse({ error: 'Failed to fetch prompts' }, 500)
     }
 
-    return corsResponse({ prompts })
+    // Group by category for easier frontend consumption
+    const groupedPrompts = prompts.reduce((acc: Record<string, any[]>, prompt) => {
+      if (!acc[prompt.category]) {
+        acc[prompt.category] = []
+      }
+      acc[prompt.category].push(prompt)
+      return acc
+    }, {})
+
+    return corsResponse({ 
+      prompts: prompts,
+      grouped: groupedPrompts 
+    })
   } catch (error) {
     console.error('Unexpected error:', error)
     return corsResponse({ error: 'Internal server error' }, 500)

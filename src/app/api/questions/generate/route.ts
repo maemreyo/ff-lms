@@ -62,33 +62,10 @@ export async function POST(request: NextRequest) {
       sessionId
     } = validatedData
 
-    // Handle custom prompt if provided
-    let customPrompt = null
-    if (customPromptId) {
-      try {
-        const supabase = getSupabaseServer(request)
-        if (supabase) {
-          const { data: promptData, error: promptError } = await supabase
-            .from('custom_prompts')
-            .select('system_prompt, user_template, config')
-            .eq('id', customPromptId.replace('custom-', '')) // Remove 'custom-' prefix
-            .eq('is_active', true)
-            .single()
-
-          if (promptError) {
-            console.warn('Failed to fetch custom prompt:', promptError)
-          } else {
-            customPrompt = promptData
-            console.log('Using custom prompt:', customPromptId)
-          }
-        }
-      } catch (error) {
-        console.warn('Error fetching custom prompt:', error)
-      }
-    }
-
-    // Initialize AI service
+    // Initialize AI service and get Supabase client
     const aiService = createAIService(aiProvider ? { provider: aiProvider } : undefined)
+    const supabase = getSupabaseServer(request)
+
     // Handle difficulty-based generation with support for custom counts from presets
     let finalPreset: DifficultyPreset
     if (difficulty) {
@@ -121,18 +98,27 @@ export async function POST(request: NextRequest) {
     let generatedQuestions
 
     if (difficulty) {
-      // Generate questions for single difficulty level with custom count support
-      generatedQuestions = await aiService.generateSingleDifficultyQuestions(
+      // Use the new enhanced method with custom prompt support
+      generatedQuestions = await aiService.generateQuestionsWithCustomPrompt(
         loop as SavedLoop,
         transcript,
         difficulty,
-        { 
-          segments, 
-          customPrompt: customPrompt || undefined,
-          questionCount: customCount // Pass custom count to AI service
-        }
+        customPromptId,
+        customCount,
+        segments,
+        supabase
       )
     } else {
+      // Handle custom prompt for mixed difficulty generation
+      let customPrompt = null
+      if (customPromptId && supabase) {
+        const { AIService } = await import('@/lib/services/ai-service')
+        customPrompt = await AIService.fetchCustomPrompt(customPromptId, supabase)
+        if (!customPrompt) {
+          console.warn(`Custom prompt ${customPromptId} not found, falling back to default`)
+        }
+      }
+
       // Generate questions with mixed difficulty levels
       generatedQuestions = await aiService.generateConversationQuestions(
         loop as SavedLoop,
@@ -150,7 +136,6 @@ export async function POST(request: NextRequest) {
     let shareToken: string | undefined = undefined
     if (saveToDatabase) {
       try {
-        const supabase = getSupabaseServer(request)
         const user = await getCurrentUserServer(supabase)
 
         if (!user) {
@@ -188,7 +173,9 @@ export async function POST(request: NextRequest) {
             difficulty: difficulty || 'mixed',
             usedSegments: !!segments,
             customCount: customCount, // Track preset-based custom counts
-            isPresetBased: !!customCount
+            isPresetBased: !!customCount,
+            customPromptId: customPromptId || null, // Track which custom prompt was used
+            usedCustomPrompt: !!customPromptId
           }
         })
 
@@ -216,6 +203,8 @@ export async function POST(request: NextRequest) {
           segmentsCount: segments?.length || 0,
           customCount: customCount, // Track preset-based custom counts
           isPresetBased: !!customCount,
+          customPromptId: customPromptId || null,
+          usedCustomPrompt: !!customPromptId,
           transcript: {
             length: transcript.length,
             wordCount: transcript.split(/\s+/).length
@@ -263,6 +252,13 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           { error: 'Transcript is too long for processing. Please try with shorter text.' },
           { status: 413 }
+        )
+      }
+
+      if (error.message.includes('Failed to generate any valid')) {
+        return NextResponse.json(
+          { error: 'AI service could not generate valid questions. Please try again or use a different difficulty level.' },
+          { status: 422 }
         )
       }
     }
