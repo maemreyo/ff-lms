@@ -103,6 +103,7 @@ export interface QuestionGenerationOptions {
   segments?: Array<{ text: string; start: number; duration: number }>
   customPrompt?: CustomPrompt
   questionCount?: number // Allow custom question count
+  previousQuestions?: GeneratedQuestion[] // NEW: Questions to avoid duplicating
 }
 
 /**
@@ -558,8 +559,8 @@ export class AIService {
 
       // Use segments if provided, otherwise fallback to transcript
       const promptData = options?.segments && options.segments.length > 0
-        ? { loop, segments: options.segments, difficulty, questionCount: targetQuestionCount }
-        : { loop, transcript, difficulty, questionCount: targetQuestionCount }
+        ? { loop, segments: options.segments, difficulty, questionCount: targetQuestionCount, previousQuestions: options?.previousQuestions }
+        : { loop, transcript, difficulty, questionCount: targetQuestionCount, previousQuestions: options?.previousQuestions }
 
       messages = PromptManager.buildMessages(template, promptData)
       config = PromptManager.getConfig(template)
@@ -913,6 +914,103 @@ export class AIService {
         questionCount: questionCount || 6
       }
     )
+  }
+
+  /**
+   * Sequential question generation with deduplication to avoid similar questions across difficulties
+   */
+  async generateQuestionsSequentiallyWithDeduplication(
+    loop: SavedLoop,
+    transcript: string,
+    preset: DifficultyPreset,
+    customPromptId?: string,
+    segments?: Array<{ text: string; start: number; duration: number }>,
+    supabaseClient?: any
+  ): Promise<{
+    easy: GeneratedQuestions | null,
+    medium: GeneratedQuestions | null, 
+    hard: GeneratedQuestions | null,
+    allQuestions: GeneratedQuestion[]
+  }> {
+    console.log('🔄 Starting sequential question generation with deduplication...')
+    
+    let allGeneratedQuestions: GeneratedQuestion[] = []
+    let easyQuestions: GeneratedQuestions | null = null
+    let mediumQuestions: GeneratedQuestions | null = null
+    let hardQuestions: GeneratedQuestions | null = null
+
+    // Step 1: Generate Easy Questions (if requested)
+    if (preset.easy > 0) {
+      console.log(`📝 Generating ${preset.easy} easy questions...`)
+      try {
+        easyQuestions = await this.generateQuestionsWithCustomPrompt(
+          loop,
+          transcript,
+          'easy',
+          customPromptId,
+          preset.easy,
+          segments,
+          supabaseClient
+        )
+        allGeneratedQuestions.push(...easyQuestions.questions)
+        console.log(`✅ Generated ${easyQuestions.questions.length} easy questions`)
+      } catch (error) {
+        console.error('❌ Failed to generate easy questions:', error)
+      }
+    }
+
+    // Step 2: Generate Medium Questions (if requested) with easy questions as context
+    if (preset.medium > 0) {
+      console.log(`📝 Generating ${preset.medium} medium questions with deduplication context...`)
+      try {
+        mediumQuestions = await this.generateSingleDifficultyQuestions(
+          loop,
+          transcript,
+          'medium',
+          {
+            segments,
+            questionCount: preset.medium,
+            previousQuestions: allGeneratedQuestions, // Pass easy questions to avoid duplicates
+            customPrompt: customPromptId ? await AIService.fetchCustomPrompt(customPromptId, supabaseClient) || undefined : undefined
+          }
+        )
+        allGeneratedQuestions.push(...mediumQuestions.questions)
+        console.log(`✅ Generated ${mediumQuestions.questions.length} medium questions`)
+      } catch (error) {
+        console.error('❌ Failed to generate medium questions:', error)
+      }
+    }
+
+    // Step 3: Generate Hard Questions (if requested) with easy+medium questions as context
+    if (preset.hard > 0) {
+      console.log(`📝 Generating ${preset.hard} hard questions with deduplication context...`)
+      try {
+        hardQuestions = await this.generateSingleDifficultyQuestions(
+          loop,
+          transcript,
+          'hard',
+          {
+            segments,
+            questionCount: preset.hard,
+            previousQuestions: allGeneratedQuestions, // Pass easy+medium questions to avoid duplicates
+            customPrompt: customPromptId ? await AIService.fetchCustomPrompt(customPromptId, supabaseClient) || undefined : undefined
+          }
+        )
+        allGeneratedQuestions.push(...hardQuestions.questions)
+        console.log(`✅ Generated ${hardQuestions.questions.length} hard questions`)
+      } catch (error) {
+        console.error('❌ Failed to generate hard questions:', error)
+      }
+    }
+
+    console.log(`🎯 Sequential generation complete. Total: ${allGeneratedQuestions.length} questions`)
+    
+    return {
+      easy: easyQuestions,
+      medium: mediumQuestions,
+      hard: hardQuestions,
+      allQuestions: allGeneratedQuestions
+    }
   }
 
   // Get current configuration (without sensitive data)

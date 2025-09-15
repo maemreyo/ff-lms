@@ -306,7 +306,7 @@ export function useGroupQuestionGeneration(groupId: string, sessionId: string) {
 
   // Enhanced method for generating questions based on preset distribution with cleanup
   const handleGenerateFromPreset = async (
-    loopData: any, 
+    loopData: any,
     distribution: { easy: number; medium: number; hard: number },
     presetInfo: { id: string; name: string; isCustom?: boolean }
   ) => {
@@ -348,45 +348,12 @@ export function useGroupQuestionGeneration(groupId: string, sessionId: string) {
     console.log(`Generating questions for preset: ${presetInfo.name}`)
     await clearExistingQuestions()
 
-    const { easy, medium, hard } = distribution
-    const promises = []
-    
-    // Extract custom prompt ID if this is a custom preset
-    const customPromptId = presetInfo.isCustom ? presetInfo.id : undefined
-
     try {
       setGeneratingState(prev => ({ ...prev, all: true }))
 
-      // Generate questions for each difficulty based on preset distribution
-      // Break down larger counts into smaller batches for quality (5-8 questions per batch)
-      const MAX_BATCH_SIZE = 8
-
-      if (easy > 0) {
-        const batches = Math.ceil(easy / MAX_BATCH_SIZE)
-        for (let i = 0; i < batches; i++) {
-          const batchSize = Math.min(MAX_BATCH_SIZE, easy - (i * MAX_BATCH_SIZE))
-          promises.push(handleGenerateQuestions('easy', loopData, batchSize, customPromptId))
-        }
-      }
-
-      if (medium > 0) {
-        const batches = Math.ceil(medium / MAX_BATCH_SIZE)
-        for (let i = 0; i < batches; i++) {
-          const batchSize = Math.min(MAX_BATCH_SIZE, medium - (i * MAX_BATCH_SIZE))
-          promises.push(handleGenerateQuestions('medium', loopData, batchSize, customPromptId))
-        }
-      }
-
-      if (hard > 0) {
-        const batches = Math.ceil(hard / MAX_BATCH_SIZE)
-        for (let i = 0; i < batches; i++) {
-          const batchSize = Math.min(MAX_BATCH_SIZE, hard - (i * MAX_BATCH_SIZE))
-          promises.push(handleGenerateQuestions('hard', loopData, batchSize, customPromptId))
-        }
-      }
-
-      console.log(`🚀 Starting ${promises.length} question generation batches`)
-      await Promise.all(promises)
+      // Use sequential generation with deduplication instead of separate API calls
+      console.log('🔄 Using handleGenerateAllQuestions for sequential generation with deduplication')
+      await handleGenerateAllQuestions(loopData, distribution)
 
       // Set current preset after successful generation
       const newPreset = {
@@ -396,13 +363,13 @@ export function useGroupQuestionGeneration(groupId: string, sessionId: string) {
         createdAt: new Date()
       }
       setCurrentPreset(newPreset)
-      
+
       // Save to database
       await saveCurrentPreset(newPreset)
 
       setGeneratingState(prev => ({ ...prev, all: false }))
-      
-      toast.success(`Successfully generated ${easy + medium + hard} questions from ${presetInfo.name} preset!`)
+
+      toast.success(`Successfully generated ${distribution.easy + distribution.medium + distribution.hard} questions from ${presetInfo.name} preset!`)
     } catch (error) {
       console.error('Failed to generate questions from preset:', error)
       setGeneratingState(prev => ({ ...prev, all: false }))

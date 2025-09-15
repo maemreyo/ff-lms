@@ -1,0 +1,23 @@
+✅ **SEQUENTIAL GENERATION FIX COMPLETE**
+
+🔧 **Root Cause Identified:**
+The frontend useGenerateAllQuestions() hook was making 3 separate API calls with specific difficulty parameters, which triggered the single-difficulty path instead of the sequential generation with deduplication.
+
+🛠️ **Fix Applied:**
+- Modified /src/hooks/useQuestionGeneration.ts
+- Changed from 3 separate API calls to 1 unified call
+- Now sends preset object instead of individual difficulty parameters
+- This triggers the sequential generation with deduplication path in the API
+
+📊 **Expected Behavior Now:**
+- Single API call with preset: { easy: X, medium: Y, hard: Z }
+- API route will use 'else' path (sequential generation)
+- Questions generated in sequence: Easy → Medium → Hard  
+- Each subsequent generation gets context from previous ones
+- No more duplicate questions across difficulty levels
+
+🔍 **Log Pattern Change:**
+- OLD: 3 separate log entries with individual difficulty calls
+- NEW: 1 log entry showing '🔄 Using sequential generation with deduplication'
+
+The fix ensures the sequential generation with deduplication that was implemented will actually be used instead of the separate API calls that were causing duplicate questions.

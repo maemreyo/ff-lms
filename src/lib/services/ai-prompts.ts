@@ -325,6 +325,13 @@ Please generate multiple-choice questions for a SINGLE DIFFICULTY LEVEL with the
    - This object must contain 'startTime' and 'endTime' (in seconds) of the most relevant transcript segment.
    - It must also include the 'text' of that segment. This helps learners locate and review the exact context.
 
+**8. Question Uniqueness (if previous questions provided):**
+   - If previous questions are provided, review them carefully to avoid duplicates
+   - Generate completely different questions that cover NEW aspects of the transcript
+   - Avoid similar topics, vocabulary, timeframes, or question patterns already covered
+   - Focus on different parts of the transcript or different question types
+   - Ensure your questions complement rather than repeat existing questions
+
 {
   "questions": [
     {
@@ -359,6 +366,11 @@ Please generate multiple-choice questions for a SINGLE DIFFICULTY LEVEL with the
     difficulty: 'easy' | 'medium' | 'hard'
     questionCount?: number
     segments?: Array<{ text: string; start: number; duration: number }>
+    previousQuestions?: Array<{
+      question: string
+      difficulty: string
+      type: string
+    }>
   }) => {
     const formatTime = (seconds: number): string => {
       const mins = Math.floor(seconds / 60)
@@ -377,7 +389,7 @@ Please generate multiple-choice questions for a SINGLE DIFFICULTY LEVEL with the
           .join('\n')
       : context.transcript
 
-    return `Generate exactly ${questionCount} ${context.difficulty} questions from this transcript (formatted with timestamps):
+    let prompt = `Generate exactly ${questionCount} ${context.difficulty} questions from this transcript (formatted with timestamps):
 
 **DIFFICULTY TARGET:** ${context.difficulty}
 **QUESTION COUNT:** ${questionCount}
@@ -396,10 +408,35 @@ Duration: ${formatTime(context.loop.endTime - context.loop.startTime)}
 
 Transcript (with timestamps):
 ${transcriptContent}`
+
+    // Add deduplication instructions if previous questions exist
+    if (context.previousQuestions && context.previousQuestions.length > 0) {
+      const previousQuestionsText = context.previousQuestions.map((q, i) => 
+        `${i + 1}. [${q.difficulty.toUpperCase()}] ${q.question}`
+      ).join('\n')
+
+      prompt += `
+
+**🚨 CRITICAL DEDUPLICATION REQUIREMENT:**
+The following questions have ALREADY been generated for this transcript. You MUST create completely different questions:
+
+EXISTING QUESTIONS TO AVOID:
+${previousQuestionsText}
+
+**Deduplication Strategy:**
+- Focus on DIFFERENT timeframes/segments of the transcript
+- Ask about DIFFERENT topics, names, numbers, or details
+- Use DIFFERENT question types (main_idea, inference, tone, etc.)
+- Avoid similar vocabulary or concepts already covered
+- Find NEW aspects or angles not yet explored
+- Ensure your questions complement, not duplicate, existing ones`
+    }
+
+    return prompt
   },
 
   config: {
-    maxTokens: 16000,
+    maxTokens: 64000,
     temperature: 0.3
   }
 }

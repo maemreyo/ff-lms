@@ -109,23 +109,31 @@ export async function POST(request: NextRequest) {
         supabase
       )
     } else {
-      // Handle custom prompt for mixed difficulty generation
-      let customPrompt = null
-      if (customPromptId && supabase) {
-        const { AIService } = await import('@/lib/services/ai-service')
-        customPrompt = await AIService.fetchCustomPrompt(customPromptId, supabase)
-        if (!customPrompt) {
-          console.warn(`Custom prompt ${customPromptId} not found, falling back to default`)
-        }
-      }
+      // Use sequential generation with deduplication for mixed difficulty questions
+      console.log('🔄 Using sequential generation with deduplication to avoid duplicate questions')
 
-      // Generate questions with mixed difficulty levels
-      generatedQuestions = await aiService.generateConversationQuestions(
+      const sequentialResults = await aiService.generateQuestionsSequentiallyWithDeduplication(
         loop as SavedLoop,
         transcript,
         finalPreset,
-        { segments, customPrompt: customPrompt || undefined }
+        customPromptId,
+        segments,
+        supabase
       )
+
+      // Combine all questions into a single result structure
+      const allQuestions = sequentialResults.allQuestions
+      const actualDistribution = {
+        easy: sequentialResults.easy?.questions.length || 0,
+        medium: sequentialResults.medium?.questions.length || 0,
+        hard: sequentialResults.hard?.questions.length || 0
+      }
+
+      generatedQuestions = {
+        questions: allQuestions,
+        preset: finalPreset,
+        actualDistribution
+      }
     }
 
     const processingTime = Date.now() - startTime

@@ -127,50 +127,61 @@ export function useGenerateAllQuestions(options?: UseGenerateAllQuestionsOptions
         throw new Error('No loop data available')
       }
 
-      // Use preset counts if provided, otherwise use default generation
-      const difficulties: ('easy' | 'medium' | 'hard')[] = ['easy', 'medium', 'hard']
-      
-      const promises = difficulties.map(async difficulty => {
-        const headers = await getAuthHeaders()
-        const customCount = presetCounts?.[difficulty]
-        
-        const response = await fetch('/api/questions/generate', {
-          method: 'POST',
-          headers: {
-            ...headers,
-            'Content-Type': 'application/json'
+      // Use sequential generation with deduplication - single API call with preset
+      const headers = await getAuthHeaders()
+
+      // Build preset object from presetCounts or use defaults
+      const preset = {
+        easy: presetCounts?.easy || 3,
+        medium: presetCounts?.medium || 2,
+        hard: presetCounts?.hard || 1
+      }
+
+      const response = await fetch('/api/questions/generate', {
+        method: 'POST',
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          transcript: loop.transcript,
+          loop: {
+            id: loop.id,
+            videoTitle: loop.videoTitle || loop.title,
+            startTime: loop.startTime || loop.start_time || 0,
+            endTime: loop.endTime || loop.end_time || 300
           },
-          body: JSON.stringify({
-            transcript: loop.transcript,
-            loop: {
-              id: loop.id,
-              videoTitle: loop.videoTitle || loop.title,
-              startTime: loop.startTime || loop.start_time,
-              endTime: loop.endTime || loop.end_time
-            },
-            segments: loop.segments,
-            difficulty: difficulty,
-            saveToDatabase: true,
-            groupId: groupId,
-            sessionId: sessionId,
-            customCount: customCount // Pass preset count for this difficulty
-          })
+          segments: loop.segments,
+          preset: preset, // Use preset instead of difficulty
+          saveToDatabase: true,
+          groupId: groupId,
+          sessionId: sessionId
         })
-
-        if (!response.ok) {
-          const errorData = await response.json()
-          throw new Error(errorData.error || `Failed to generate ${difficulty} questions`)
-        }
-
-        const result = await response.json()
-        return {
-          difficulty,
-          count: result.data.questions.length,
-          shareToken: result.shareToken
-        }
       })
 
-      return Promise.all(promises)
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to generate questions with sequential deduplication')
+      }
+
+      const result = await response.json()
+
+      // Transform result to match expected format
+      const transformedResults: Array<{ difficulty: string; count: number; shareToken: string }> = []
+      if (result.data.actualDistribution) {
+        const distribution = result.data.actualDistribution
+        Object.entries(distribution).forEach(([difficulty, count]) => {
+          if (typeof count === 'number' && count > 0) {
+            transformedResults.push({
+              difficulty,
+              count,
+              shareToken: result.shareToken // Same token for all difficulties from sequential generation
+            })
+          }
+        })
+      }
+
+      return transformedResults
     },
     onSuccess: (results) => {
       const totalQuestions = results.reduce((sum, result) => sum + result.count, 0)
