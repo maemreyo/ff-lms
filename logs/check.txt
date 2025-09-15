@@ -1,0 +1,171 @@
+1. Trông có vẻ đúng rồi đó, nhưng việc delete các questions trước khi generate vẫn không xóa được:
+```
+{
+    "success": true,
+    "message": "Deleted 0 question set(s) for session",
+    "deletedCount": 0
+}
+```
+```
+http://localhost:3838/api/groups/9f640f92-d11c-463d-b3a6-2df737c912f0/sessions/891ec4e8-dead-4349-8ce3-5986983d9cb3/questions DELETE
+```
+Cần check lại api delete này
+
+```
+StartQuizSection.tsx:23 🎮 StartQuizSection debug: {totalGenerated: 11, shareTokens: {…}, hasQuestions: true, availableTokensCount: 3}
+StartQuizSection.tsx:35 ✅ StartQuizSection showing - questions available
+StartQuizSection.tsx:23 🎮 StartQuizSection debug: {totalGenerated: 11, shareTokens: {…}, hasQuestions: true, availableTokensCount: 3}
+StartQuizSection.tsx:35 ✅ StartQuizSection showing - questions available
+useQuizBroadcast.ts:83 📡 Attempting to broadcast preparation update: {step: 'preset-selection', data: {…}, canBroadcast: true, hasChannel: true, userId: '39abb7b6-93ca-4f4c-b07b-1087f6224cb5'}
+useQuizBroadcast.ts:99 📡 Broadcasting payload: {type: 'preparation_update', step: 'preset-selection', selectedPreset: {…}, updated_by: '39abb7b6-93ca-4f4c-b07b-1087f6224cb5', updated_at: '2025-09-15T07:53:49.746Z'}
+useQuestionGeneration.ts:262 🎯 handleGenerateFromPreset called with: {loopData: 'Loop ID: febf3e85-4805-404b-9f98-b110df095430, hasTranscript: true', distribution: {…}, presetInfo: {…}}
+useQuestionGeneration.ts:297 Generating questions for preset: Detail-Focused Listening
+useQuestionGeneration.ts:149 Clearing existing questions from database
+StartQuizSection.tsx:23 🎮 StartQuizSection debug: {totalGenerated: 11, shareTokens: {…}, hasQuestions: true, availableTokensCount: 3}
+StartQuizSection.tsx:35 ✅ StartQuizSection showing - questions available
+StartQuizSection.tsx:23 🎮 StartQuizSection debug: {totalGenerated: 11, shareTokens: {…}, hasQuestions: true, availableTokensCount: 3}
+StartQuizSection.tsx:35 ✅ StartQuizSection showing - questions available
+useQuizBroadcast.ts:107 ✅ Preparation update broadcasted successfully: preset-selection
+useQuizBroadcast.ts:83 📡 Attempting to broadcast preparation update: {step: 'question-generation', data: {…}, canBroadcast: true, hasChannel: true, userId: '39abb7b6-93ca-4f4c-b07b-1087f6224cb5'}
+useQuizBroadcast.ts:99 📡 Broadcasting payload: {type: 'preparation_update', step: 'question-generation', selectedPreset: {…}, all: true, completed: false, …}
+useQuizBroadcast.ts:107 ✅ Preparation update broadcasted successfully: question-generation
+useQuestionGeneration.ts:166 Successfully deleted 0 question set(s) from database
+useSharedQuestions.ts:35 🔄 [useSharedQuestions] Fetching questions from API for cache
+useQuestionGeneration.ts:184 🔄 [useQuestionGeneration] Invalidated questions cache after deletion
+useQuestionGeneration.ts:304 🔄 Using handleGenerateAllQuestions for sequential generation with deduplication
+useQuestionGeneration.ts:124 Generating all questions for loop: febf3e85-4805-404b-9f98-b110df095430 with preset counts
+page.tsx:52 🔍 Permission Debug: {user: {…}, group: {…}, session: {…}, canManageQuiz: true, isOwner: true, …}
+page.tsx:236 🔐 Setup page permission check: {canManageQuiz: true, isOwner: true, isAdmin: false, isSessionCreator: true, userRole: 'owner'}
+page.tsx:259 👑 Showing Owner preset selection view
+page.tsx:52 🔍 Permission Debug: {user: {…}, group: {…}, session: {…}, canManageQuiz: true, isOwner: true, …}
+page.tsx:236 🔐 Setup page permission check: {canManageQuiz: true, isOwner: true, isAdmin: false, isSessionCreator: true, userRole: 'owner'}
+page.tsx:259 👑 Showing Owner preset selection view
+StartQuizSection.tsx:23 🎮 StartQuizSection debug: {totalGenerated: 11, shareTokens: {…}, hasQuestions: true, availableTokensCount: 3}
+StartQuizSection.tsx:35 ✅ StartQuizSection showing - questions available
+StartQuizSection.tsx:23 🎮 StartQuizSection debug: {totalGenerated: 11, shareTokens: {…}, hasQuestions: true, availableTokensCount: 3}
+StartQuizSection.tsx:35 ✅ StartQuizSection showing - questions available
+useSharedQuestions.ts:48 📦 [useSharedQuestions] Raw API response: {success: true, data: {…}}
+useSharedQuestions.ts:74 ✅ [useSharedQuestions] Parsed and cached: {shareTokens: {…}, generatedCounts: {…}, questionsByDifficulty: {…}}
+page.tsx:52 🔍 Permission Debug: {user: {…}, group: {…}, session: {…}, canManageQuiz: true, isOwner: true, …}
+page.tsx:236 🔐 Setup page permission check: {canManageQuiz: true, isOwner: true, isAdmin: false, isSessionCreator: true, userRole: 'owner'}
+page.tsx:259 👑 Showing Owner preset selection view
+page.tsx:52 🔍 Permission Debug: {user: {…}, group: {…}, session: {…}, canManageQuiz: true, isOwner: true, …}
+page.tsx:236 🔐 Setup page permission check: {canManageQuiz: true, isOwner: true, isAdmin: false, isSessionCreator: true, userRole: 'owner'}
+page.tsx:259 👑 Showing Owner preset selection view
+StartQuizSection.tsx:23 🎮 StartQuizSection debug: {totalGenerated: 11, shareTokens: {…}, hasQuestions: true, availableTokensCount: 3}
+StartQuizSection.tsx:35 ✅ StartQuizSection showing - questions available
+StartQuizSection.tsx:23 🎮 StartQuizSection debug: {totalGenerated: 11, shareTokens: {…}, hasQuestions: true, availableTokensCount: 3}
+StartQuizSection.tsx:35 ✅ StartQuizSection showing - questions available
+useQuizBroadcast.ts:83 📡 Attempting to broadcast preparation update: {step: 'preset-selection', data: {…}, canBroadcast: true, hasChannel: true, userId: '39abb7b6-93ca-4f4c-b07b-1087f6224cb5'}
+useQuizBroadcast.ts:99 📡 Broadcasting payload: {type: 'preparation_update', step: 'preset-selection', selectedPreset: {…}, updated_by: '39abb7b6-93ca-4f4c-b07b-1087f6224cb5', updated_at: '2025-09-15T07:53:59.786Z'}
+useQuestionGeneration.ts:262 🎯 handleGenerateFromPreset called with: {loopData: 'Loop ID: febf3e85-4805-404b-9f98-b110df095430, hasTranscript: true', distribution: {…}, presetInfo: {…}}
+useQuestionGeneration.ts:291 Generation already in progress, skipping duplicate request
+useQuizBroadcast.ts:83 📡 Attempting to broadcast preparation update: {step: 'ready-to-start', data: {…}, canBroadcast: true, hasChannel: true, userId: '39abb7b6-93ca-4f4c-b07b-1087f6224cb5'}
+useQuizBroadcast.ts:99 📡 Broadcasting payload: {type: 'preparation_update', step: 'ready-to-start', questionsReady: true, updated_by: '39abb7b6-93ca-4f4c-b07b-1087f6224cb5', updated_at: '2025-09-15T07:53:59.788Z'}
+useQuizBroadcast.ts:107 ✅ Preparation update broadcasted successfully: preset-selection
+useQuizBroadcast.ts:107 ✅ Preparation update broadcasted successfully: ready-to-start
+StartQuizSection.tsx:23 🎮 StartQuizSection debug: {totalGenerated: 11, shareTokens: {…}, hasQuestions: true, availableTokensCount: 3}
+StartQuizSection.tsx:35 ✅ StartQuizSection showing - questions available
+StartQuizSection.tsx:23 🎮 StartQuizSection debug: {totalGenerated: 11, shareTokens: {…}, hasQuestions: true, availableTokensCount: 3}
+StartQuizSection.tsx:35 ✅ StartQuizSection showing - questions available
+useQuizBroadcast.ts:83 📡 Attempting to broadcast preparation update: {step: 'question-generation', data: {…}, canBroadcast: true, hasChannel: true, userId: '39abb7b6-93ca-4f4c-b07b-1087f6224cb5'}
+useQuizBroadcast.ts:99 📡 Broadcasting payload: {type: 'preparation_update', step: 'question-generation', selectedPreset: {…}, all: true, completed: false, …}
+useQuizBroadcast.ts:107 ✅ Preparation update broadcasted successfully: question-generation
+useQuestionGeneration.ts:132 Successfully generated all questions: (3) [{…}, {…}, {…}]
+useSharedQuestions.ts:35 🔄 [useSharedQuestions] Fetching questions from API for cache
+useQuestionGeneration.ts:138 🔄 [useQuestionGeneration] Invalidated questions cache for new preset tokens
+page.tsx:52 🔍 Permission Debug: {user: {…}, group: {…}, session: {…}, canManageQuiz: true, isOwner: true, …}
+page.tsx:236 🔐 Setup page permission check: {canManageQuiz: true, isOwner: true, isAdmin: false, isSessionCreator: true, userRole: 'owner'}
+page.tsx:259 👑 Showing Owner preset selection view
+page.tsx:52 🔍 Permission Debug: {user: {…}, group: {…}, session: {…}, canManageQuiz: true, isOwner: true, …}
+page.tsx:236 🔐 Setup page permission check: {canManageQuiz: true, isOwner: true, isAdmin: false, isSessionCreator: true, userRole: 'owner'}
+page.tsx:259 👑 Showing Owner preset selection view
+StartQuizSection.tsx:23 🎮 StartQuizSection debug: {totalGenerated: 11, shareTokens: {…}, hasQuestions: true, availableTokensCount: 3}
+StartQuizSection.tsx:35 ✅ StartQuizSection showing - questions available
+StartQuizSection.tsx:23 🎮 StartQuizSection debug: {totalGenerated: 11, shareTokens: {…}, hasQuestions: true, availableTokensCount: 3}
+StartQuizSection.tsx:35 ✅ StartQuizSection showing - questions available
+useQuestionGeneration.ts:102 Saved current preset to database
+useQuizBroadcast.ts:83 📡 Attempting to broadcast preparation update: {step: 'ready-to-start', data: {…}, canBroadcast: true, hasChannel: true, userId: '39abb7b6-93ca-4f4c-b07b-1087f6224cb5'}
+useQuizBroadcast.ts:99 📡 Broadcasting payload: {type: 'preparation_update', step: 'ready-to-start', questionsReady: true, updated_by: '39abb7b6-93ca-4f4c-b07b-1087f6224cb5', updated_at: '2025-09-15T07:54:27.403Z'}
+useQuizBroadcast.ts:107 ✅ Preparation update broadcasted successfully: ready-to-start
+page.tsx:52 🔍 Permission Debug: {user: {…}, group: {…}, session: {…}, canManageQuiz: true, isOwner: true, …}
+page.tsx:236 🔐 Setup page permission check: {canManageQuiz: true, isOwner: true, isAdmin: false, isSessionCreator: true, userRole: 'owner'}
+page.tsx:259 👑 Showing Owner preset selection view
+page.tsx:52 🔍 Permission Debug: {user: {…}, group: {…}, session: {…}, canManageQuiz: true, isOwner: true, …}
+page.tsx:236 🔐 Setup page permission check: {canManageQuiz: true, isOwner: true, isAdmin: false, isSessionCreator: true, userRole: 'owner'}
+page.tsx:259 👑 Showing Owner preset selection view
+StartQuizSection.tsx:23 🎮 StartQuizSection debug: {totalGenerated: 11, shareTokens: {…}, hasQuestions: true, availableTokensCount: 3}
+StartQuizSection.tsx:35 ✅ StartQuizSection showing - questions available
+StartQuizSection.tsx:23 🎮 StartQuizSection debug: {totalGenerated: 11, shareTokens: {…}, hasQuestions: true, availableTokensCount: 3}
+StartQuizSection.tsx:35 ✅ StartQuizSection showing - questions available
+useSharedQuestions.ts:48 📦 [useSharedQuestions] Raw API response: {success: true, data: {…}}
+useSharedQuestions.ts:74 ✅ [useSharedQuestions] Parsed and cached: {shareTokens: {…}, generatedCounts: {…}, questionsByDifficulty: {…}}
+page.tsx:52 🔍 Permission Debug: {user: {…}, group: {…}, session: {…}, canManageQuiz: true, isOwner: true, …}
+page.tsx:236 🔐 Setup page permission check: {canManageQuiz: true, isOwner: true, isAdmin: false, isSessionCreator: true, userRole: 'owner'}
+page.tsx:259 👑 Showing Owner preset selection view
+page.tsx:52 🔍 Permission Debug: {user: {…}, group: {…}, session: {…}, canManageQuiz: true, isOwner: true, …}
+page.tsx:236 🔐 Setup page permission check: {canManageQuiz: true, isOwner: true, isAdmin: false, isSessionCreator: true, userRole: 'owner'}
+page.tsx:259 👑 Showing Owner preset selection view
+StartQuizSection.tsx:23 🎮 StartQuizSection debug: {totalGenerated: 11, shareTokens: {…}, hasQuestions: true, availableTokensCount: 3}
+StartQuizSection.tsx:35 ✅ StartQuizSection showing - questions available
+StartQuizSection.tsx:23 🎮 StartQuizSection debug: {totalGenerated: 11, shareTokens: {…}, hasQuestions: true, availableTokensCount: 3}
+StartQuizSection.tsx:35 ✅ StartQuizSection showing - questions available
+page.tsx:132 🚀 Starting quiz from setup with shareTokens: {hard: '3d410882-86d1-414a-883f-da29b1ea8600', easy: '77fcb53e-b59b-48ef-9f32-994a92886f3d', medium: 'bdb68c9a-ce9c-4bb3-9907-0befe9ecfb70'}
+page.tsx:138 💾 Stored shareTokens in sessionStorage for navigation
+useQuizBroadcast.ts:44 🚀 Broadcasting quiz session start... {sessionId: '891ec4e8-dead-4349-8ce3-5986983d9cb3', userId: '39abb7b6-93ca-4f4c-b07b-1087f6224cb5'}
+useQuizBroadcast.ts:74 ✅ Quiz session start broadcasted successfully
+page.tsx:145 ✅ Quiz session start broadcasted, navigating to preview with tokens
+useQuizFlow.ts:22 🔍 [useQuizFlow] Getting shareTokens for navigation...
+useQuizFlow.ts:33 ✅ [useQuizFlow] Using shareTokens from sessionStorage for navigation
+useQuizFlow.ts:81 🔗 [useQuizFlow] Navigating to preview with tokens: eyJoYXJkIjoiM2Q0MTA4ODItODZkMS00MTRhLTg4M2YtZGEyOWIxZWE4NjAwIiwiZWFzeSI6Ijc3ZmNiNTNlLWI1OWItNDhlZi05ZjMyLTk5NGE5Mjg4NmYzZCIsIm1lZGl1bSI6ImJkYjY4YzlhLWNlOWMtNGJiMy05OTA3LTBiZWZlOWVjZmI3MCJ9
+page.tsx:26 🔍 [Preview/Tokens] Raw tokens from route: eyJoYXJkIjoiM2Q0MTA4ODItODZkMS00MTRhLTg4M2YtZGEyOWIxZWE4NjAwIiwiZWFzeSI6Ijc3ZmNiNTNlLWI1OWItNDhlZi05ZjMyLTk5NGE5Mjg4NmYzZCIsIm1lZGl1bSI6ImJkYjY4YzlhLWNlOWMtNGJiMy05OTA3LTBiZWZlOWVjZmI3MCJ9
+page.tsx:32 🔍 [Preview/Tokens] Decoded JSON string: {"hard":"3d410882-86d1-414a-883f-da29b1ea8600","easy":"77fcb53e-b59b-48ef-9f32-994a92886f3d","medium":"bdb68c9a-ce9c-4bb3-9907-0befe9ecfb70"}
+page.tsx:36 ✅ [Preview/Tokens] Parsed shareTokens: {hard: '3d410882-86d1-414a-883f-da29b1ea8600', easy: '77fcb53e-b59b-48ef-9f32-994a92886f3d', medium: 'bdb68c9a-ce9c-4bb3-9907-0befe9ecfb70'}
+page.tsx:45 ✅ [Preview/Tokens] Valid hardToken: 3d410882-8...
+page.tsx:45 ✅ [Preview/Tokens] Valid easyToken: 77fcb53e-b...
+page.tsx:45 ✅ [Preview/Tokens] Valid mediumToken: bdb68c9a-c...
+page.tsx:50 ✅ [Preview/Tokens] Final decoded shareTokens: {hard: '3d410882-86d1-414a-883f-da29b1ea8600', easy: '77fcb53e-b59b-48ef-9f32-994a92886f3d', medium: 'bdb68c9a-ce9c-4bb3-9907-0befe9ecfb70'}
+page.tsx:55 💾 [Preview/Tokens] Stored shareTokens in sessionStorage as backup
+useGroupQuiz.ts:267 📝 Member on preview page: transitioning from loading to question-preview
+useSharedQuestions.ts:35 🔄 [useSharedQuestions] Fetching questions from API for cache
+useGroupQuiz.ts:316 🚫 Skipping question load: {appState: 'loading', difficultyGroupsCount: 0}
+page.tsx:26 🔍 [Preview/Tokens] Raw tokens from route: eyJoYXJkIjoiM2Q0MTA4ODItODZkMS00MTRhLTg4M2YtZGEyOWIxZWE4NjAwIiwiZWFzeSI6Ijc3ZmNiNTNlLWI1OWItNDhlZi05ZjMyLTk5NGE5Mjg4NmYzZCIsIm1lZGl1bSI6ImJkYjY4YzlhLWNlOWMtNGJiMy05OTA3LTBiZWZlOWVjZmI3MCJ9
+page.tsx:32 🔍 [Preview/Tokens] Decoded JSON string: {"hard":"3d410882-86d1-414a-883f-da29b1ea8600","easy":"77fcb53e-b59b-48ef-9f32-994a92886f3d","medium":"bdb68c9a-ce9c-4bb3-9907-0befe9ecfb70"}
+page.tsx:36 ✅ [Preview/Tokens] Parsed shareTokens: {hard: '3d410882-86d1-414a-883f-da29b1ea8600', easy: '77fcb53e-b59b-48ef-9f32-994a92886f3d', medium: 'bdb68c9a-ce9c-4bb3-9907-0befe9ecfb70'}
+page.tsx:45 ✅ [Preview/Tokens] Valid hardToken: 3d410882-8...
+page.tsx:45 ✅ [Preview/Tokens] Valid easyToken: 77fcb53e-b...
+page.tsx:45 ✅ [Preview/Tokens] Valid mediumToken: bdb68c9a-c...
+page.tsx:50 ✅ [Preview/Tokens] Final decoded shareTokens: {hard: '3d410882-86d1-414a-883f-da29b1ea8600', easy: '77fcb53e-b59b-48ef-9f32-994a92886f3d', medium: 'bdb68c9a-ce9c-4bb3-9907-0befe9ecfb70'}
+page.tsx:55 💾 [Preview/Tokens] Stored shareTokens in sessionStorage as backup
+useGroupQuiz.ts:267 📝 Member on preview page: transitioning from loading to question-preview
+useGroupQuiz.ts:316 🚫 Skipping question load: {appState: 'loading', difficultyGroupsCount: 0}
+useSharedQuestions.ts:95 🔍 [useSharedQuestions] Cache status: {hasData: true, shareTokensCount: 3, isLoading: false, isFetching: true, error: undefined, …}
+useSharedQuestions.ts:95 🔍 [useSharedQuestions] Cache status: {hasData: true, shareTokensCount: 3, isLoading: false, isFetching: true, error: undefined, …}
+useGroupQuiz.ts:349 🎯 [CACHE-POWERED] Loading questions from shareTokens: {hard: '3d410882-86d1-414a-883f-da29b1ea8600', easy: '77fcb53e-b59b-48ef-9f32-994a92886f3d', medium: 'bdb68c9a-ce9c-4bb3-9907-0befe9ecfb70'}
+useGroupQuiz.ts:115 🔄 [loadQuestionsFromShareTokens] Loading questions with PERSISTENCE caching: {hard: '3d410882-86d1-414a-883f-da29b1ea8600', easy: '77fcb53e-b59b-48ef-9f32-994a92886f3d', medium: 'bdb68c9a-ce9c-4bb3-9907-0befe9ecfb70'}
+useGroupQuiz.ts:126 ✅ [CACHE HIT] Using persistent cached hard questions from sessionStorage
+useGroupQuiz.ts:126 ✅ [CACHE HIT] Using persistent cached easy questions from sessionStorage
+useGroupQuiz.ts:126 ✅ [CACHE HIT] Using persistent cached medium questions from sessionStorage
+useGroupQuiz.ts:357 ✅ Questions loaded for question-preview state - preserving current appState
+useSharedQuestions.ts:95 🔍 [useSharedQuestions] Cache status: {hasData: true, shareTokensCount: 3, isLoading: false, isFetching: true, error: undefined, …}
+useSharedQuestions.ts:95 🔍 [useSharedQuestions] Cache status: {hasData: true, shareTokensCount: 3, isLoading: false, isFetching: true, error: undefined, …}
+useSharedQuestions.ts:95 🔍 [useSharedQuestions] Cache status: {hasData: true, shareTokensCount: 3, isLoading: false, isFetching: true, error: undefined, …}
+useSharedQuestions.ts:95 🔍 [useSharedQuestions] Cache status: {hasData: true, shareTokensCount: 3, isLoading: false, isFetching: true, error: undefined, …}
+useGroupQuiz.ts:316 🚫 Skipping question load: {appState: 'question-preview', difficultyGroupsCount: 3}
+useSharedQuestions.ts:95 🔍 [useSharedQuestions] Cache status: {hasData: true, shareTokensCount: 3, isLoading: false, isFetching: true, error: undefined, …}
+useSharedQuestions.ts:95 🔍 [useSharedQuestions] Cache status: {hasData: true, shareTokensCount: 3, isLoading: false, isFetching: true, error: undefined, …}
+useSharedQuestions.ts:95 🔍 [useSharedQuestions] Cache status: {hasData: true, shareTokensCount: 3, isLoading: false, isFetching: true, error: undefined, …}
+useSharedQuestions.ts:95 🔍 [useSharedQuestions] Cache status: {hasData: true, shareTokensCount: 3, isLoading: false, isFetching: true, error: undefined, …}
+use-quiz-auth.ts:88 Quiz Auth: Auth state changed: INITIAL_SESSION
+useSharedQuestions.ts:95 🔍 [useSharedQuestions] Cache status: {hasData: true, shareTokensCount: 3, isLoading: false, isFetching: true, error: undefined, …}
+useSharedQuestions.ts:95 🔍 [useSharedQuestions] Cache status: {hasData: true, shareTokensCount: 3, isLoading: false, isFetching: true, error: undefined, …}
+useSharedQuestions.ts:95 🔍 [useSharedQuestions] Cache status: {hasData: true, shareTokensCount: 3, isLoading: false, isFetching: true, error: undefined, …}
+useSharedQuestions.ts:95 🔍 [useSharedQuestions] Cache status: {hasData: true, shareTokensCount: 3, isLoading: false, isFetching: true, error: undefined, …}
+useSharedQuestions.ts:95 🔍 [useSharedQuestions] Cache status: {hasData: true, shareTokensCount: 3, isLoading: false, isFetching: true, error: undefined, …}
+useSharedQuestions.ts:95 🔍 [useSharedQuestions] Cache status: {hasData: true, shareTokensCount: 3, isLoading: false, isFetching: true, error: undefined, …}
+useSharedQuestions.ts:48 📦 [useSharedQuestions] Raw API response: {success: true, data: {…}}
+useSharedQuestions.ts:74 ✅ [useSharedQuestions] Parsed and cached: {shareTokens: {…}, generatedCounts: {…}, questionsByDifficulty: {…}}
+useSharedQuestions.ts:95 🔍 [useSharedQuestions] Cache status: {hasData: true, shareTokensCount: 3, isLoading: false, isFetching: false, error: undefined, …}
+useSharedQuestions.ts:95 🔍 [useSharedQuestions] Cache status: {hasData: true, shareTokensCount: 3, isLoading: false, isFetching: false, error: undefined, …}
+useSharedQuestions.ts:95 🔍 [useSharedQuestions] Cache status: {hasData: true, shareTokensCount: 3, isLoading: false, isFetching: false, error: undefined, …}
+useSharedQuestions.ts:95 🔍 [useSharedQuestions] Cache status: {hasData: true, shareTokensCount: 3, isLoading: false, isFetching: false, error: undefined, …}

@@ -96,6 +96,7 @@ export async function POST(request: NextRequest) {
 
     const startTime = Date.now()
     let generatedQuestions
+    let isSequentialGeneration = false
 
     if (difficulty) {
       // Use the new enhanced method with custom prompt support
@@ -111,6 +112,7 @@ export async function POST(request: NextRequest) {
     } else {
       // Use sequential generation with deduplication for mixed difficulty questions
       console.log('🔄 Using sequential generation with deduplication to avoid duplicate questions')
+      isSequentialGeneration = true
 
       const sequentialResults = await aiService.generateQuestionsSequentiallyWithDeduplication(
         loop as SavedLoop,
@@ -132,7 +134,8 @@ export async function POST(request: NextRequest) {
       generatedQuestions = {
         questions: allQuestions,
         preset: finalPreset,
-        actualDistribution
+        actualDistribution,
+        sequentialResults // Include the separate difficulty results
       }
     }
 
@@ -141,7 +144,7 @@ export async function POST(request: NextRequest) {
     console.log(`Generated ${generatedQuestions.questions.length} questions in ${processingTime}ms`)
 
     // Save to database if requested
-    let shareToken: string | undefined = undefined
+    let shareTokens: Record<string, string> = {}
     if (saveToDatabase) {
       try {
         const user = await getCurrentUserServer(supabase)
@@ -159,36 +162,79 @@ export async function POST(request: NextRequest) {
         )
         const sharedService = createSharedQuestionsService(request)
 
-        const questionSet = await sharedService.createSharedQuestionSet({
-          title: loop.videoTitle || `Generated Questions - ${new Date().toLocaleDateString()}`,
-          questions: generatedQuestions.questions,
-          transcript,
-          video_title: loop.videoTitle,
-          start_time: loop.startTime,
-          end_time: loop.endTime,
-          group_id: groupId,
-          session_id: sessionId,
-          is_public: !!groupId, // Public if part of group
-          expires_hours: 24, // 24 hour expiry
-          metadata: {
-            totalQuestions: generatedQuestions.questions.length,
-            preset: generatedQuestions.preset,
-            actualDistribution: generatedQuestions.actualDistribution,
-            aiProvider: aiProvider || process.env.AI_PROVIDER,
-            processingTimeMs: processingTime,
-            generatedAt: new Date().toISOString(),
-            segmentsCount: segments?.length || 0,
-            difficulty: difficulty || 'mixed',
-            usedSegments: !!segments,
-            customCount: customCount, // Track preset-based custom counts
-            isPresetBased: !!customCount,
-            customPromptId: customPromptId || null, // Track which custom prompt was used
-            usedCustomPrompt: !!customPromptId
-          }
-        })
+        if (isSequentialGeneration && generatedQuestions.sequentialResults) {
+          // Save separate question sets for each difficulty level
+          const sequentialResults = generatedQuestions.sequentialResults
+          const difficulties = ['easy', 'medium', 'hard'] as const
 
-        shareToken = questionSet.share_token
-        console.log(`Saved questions to database with token: ${shareToken}`)
+          for (const diff of difficulties) {
+            const difficultyResult = sequentialResults[diff]
+            if (difficultyResult && difficultyResult.questions.length > 0) {
+              const questionSet = await sharedService.createSharedQuestionSet({
+                title: `${loop.videoTitle || 'Generated Questions'} - ${diff.charAt(0).toUpperCase() + diff.slice(1)}`,
+                questions: difficultyResult.questions,
+                transcript,
+                video_title: loop.videoTitle,
+                start_time: loop.startTime,
+                end_time: loop.endTime,
+                group_id: groupId,
+                session_id: sessionId,
+                is_public: !!groupId,
+                expires_hours: 24,
+                metadata: {
+                  totalQuestions: difficultyResult.questions.length,
+                  preset: { easy: 0, medium: 0, hard: 0, [diff]: difficultyResult.questions.length },
+                  actualDistribution: { easy: 0, medium: 0, hard: 0, [diff]: difficultyResult.questions.length },
+                  aiProvider: aiProvider || process.env.AI_PROVIDER,
+                  processingTimeMs: processingTime,
+                  generatedAt: new Date().toISOString(),
+                  segmentsCount: segments?.length || 0,
+                  difficulty: diff, // Set specific difficulty
+                  usedSegments: !!segments,
+                  customCount: finalPreset[diff],
+                  isPresetBased: !!preset,
+                  customPromptId: customPromptId || null,
+                  usedCustomPrompt: !!customPromptId
+                }
+              })
+
+              shareTokens[diff] = questionSet.share_token
+              console.log(`Saved ${diff} questions to database with token: ${questionSet.share_token}`)
+            }
+          }
+        } else {
+          // Single difficulty generation - save as one set
+          const questionSet = await sharedService.createSharedQuestionSet({
+            title: loop.videoTitle || `Generated Questions - ${new Date().toLocaleDateString()}`,
+            questions: generatedQuestions.questions,
+            transcript,
+            video_title: loop.videoTitle,
+            start_time: loop.startTime,
+            end_time: loop.endTime,
+            group_id: groupId,
+            session_id: sessionId,
+            is_public: !!groupId,
+            expires_hours: 24,
+            metadata: {
+              totalQuestions: generatedQuestions.questions.length,
+              preset: generatedQuestions.preset,
+              actualDistribution: generatedQuestions.actualDistribution,
+              aiProvider: aiProvider || process.env.AI_PROVIDER,
+              processingTimeMs: processingTime,
+              generatedAt: new Date().toISOString(),
+              segmentsCount: segments?.length || 0,
+              difficulty: difficulty || 'mixed',
+              usedSegments: !!segments,
+              customCount: customCount,
+              isPresetBased: !!customCount,
+              customPromptId: customPromptId || null,
+              usedCustomPrompt: !!customPromptId
+            }
+          })
+
+          shareTokens.mixed = questionSet.share_token
+          console.log(`Saved questions to database with token: ${questionSet.share_token}`)
+        }
       } catch (saveError) {
         console.error('Failed to save questions to database:', saveError)
         // Don't fail the entire request if saving fails
@@ -209,7 +255,7 @@ export async function POST(request: NextRequest) {
           difficulty: difficulty || 'mixed',
           usedSegments: !!segments,
           segmentsCount: segments?.length || 0,
-          customCount: customCount, // Track preset-based custom counts
+          customCount: customCount,
           isPresetBased: !!customCount,
           customPromptId: customPromptId || null,
           usedCustomPrompt: !!customPromptId,
@@ -223,7 +269,7 @@ export async function POST(request: NextRequest) {
           }
         }
       },
-      ...(shareToken && { shareToken })
+      ...(Object.keys(shareTokens).length > 0 && { shareTokens })
     })
   } catch (error) {
     console.error('Question generation error:', error)

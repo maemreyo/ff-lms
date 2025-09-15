@@ -42,13 +42,8 @@ export function useGroupQuestionGeneration(groupId: string, sessionId: string) {
     all: false
   })
 
-  // Use cached data from shared hook instead of local state
-  const [shareTokens, setShareTokens] = useState<Record<string, string>>({})
-  const [generatedCounts, setGeneratedCounts] = useState<GeneratedCounts>({
-    easy: 0,
-    medium: 0,
-    hard: 0
-  })
+  // FIXED: Always use cached data instead of separate local state
+  // Remove local state and always use cached values directly
 
   // New: Track current preset state
   const [currentPreset, setCurrentPreset] = useState<{
@@ -57,18 +52,6 @@ export function useGroupQuestionGeneration(groupId: string, sessionId: string) {
     distribution: GeneratedCounts
     createdAt: Date
   } | null>(null)
-
-  // Sync cached data with local state when available
-  useEffect(() => {
-    if (hasQuestions) {
-      console.log('🔄 [useGroupQuestionGeneration] Syncing from cache:', {
-        cachedShareTokens,
-        cachedCounts
-      })
-      setShareTokens(cachedShareTokens)
-      setGeneratedCounts(cachedCounts)
-    }
-  }, [cachedShareTokens, cachedCounts, hasQuestions])
 
   // Load current preset from database on mount (preset is separate from questions)
   useEffect(() => {
@@ -130,21 +113,6 @@ export function useGroupQuestionGeneration(groupId: string, sessionId: string) {
     onSuccess: data => {
       console.log(`Successfully generated ${data.count} ${data.difficulty} questions`)
 
-      setGeneratedCounts(prev => ({
-        ...prev,
-        [data.difficulty]: prev[data.difficulty as keyof GeneratedCounts] + data.count
-      }))
-
-      if (data.shareToken) {
-        setShareTokens(
-          prev =>
-            ({
-              ...prev,
-              [data.difficulty]: data.shareToken
-            }) as any
-        )
-      }
-
       // 🔥 CRITICAL FIX: Invalidate cache when new questions generated
       queryClient.invalidateQueries({
         queryKey: quizQueryKeys.sessionQuestions(groupId, sessionId)
@@ -163,23 +131,6 @@ export function useGroupQuestionGeneration(groupId: string, sessionId: string) {
     onSuccess: results => {
       console.log('Successfully generated all questions:', results)
 
-      const newCounts = { easy: 0, medium: 0, hard: 0 }
-      const newShareTokens: Record<string, string> = {}
-
-      results.forEach((result: any) => {
-        newCounts[result.difficulty as keyof typeof newCounts] = result.count
-        if (result.shareToken) {
-          newShareTokens[result.difficulty] = result.shareToken
-        }
-      })
-
-      setGeneratedCounts(prev => ({
-        easy: prev.easy + newCounts.easy,
-        medium: prev.medium + newCounts.medium,
-        hard: prev.hard + newCounts.hard
-      }))
-      setShareTokens(prev => ({ ...prev, ...newShareTokens }))
-
       // 🔥 CRITICAL FIX: Invalidate cache when new questions generated  
       queryClient.invalidateQueries({
         queryKey: quizQueryKeys.sessionQuestions(groupId, sessionId)
@@ -195,16 +146,11 @@ export function useGroupQuestionGeneration(groupId: string, sessionId: string) {
 
   // New: Clear existing questions and reset state
   const clearExistingQuestions = async () => {
-    console.log('Clearing existing questions and preset state')
-    
-    // Clear local state immediately for responsive UI
-    setGeneratedCounts({ easy: 0, medium: 0, hard: 0 })
-    setShareTokens({})
-    setCurrentPreset(null)
-    
-    // Clear database questions and preset state in the background
+    console.log('Clearing existing questions from database')
+
+    // Clear database questions only (preset will be updated after successful generation)
     const promises = []
-    
+
     // Clear questions from database
     promises.push(
       (async () => {
@@ -226,15 +172,18 @@ export function useGroupQuestionGeneration(groupId: string, sessionId: string) {
         console.warn('Error deleting questions from database:', error)
       })
     )
-    
-    // Clear preset state from database
-    promises.push(saveCurrentPreset(null))
-    
-    // Wait for all operations but don't throw on error
+
+    // Wait for delete operation but don't throw on error
     try {
       await Promise.all(promises)
+      
+      // Invalidate cache after deletion
+      queryClient.invalidateQueries({
+        queryKey: quizQueryKeys.sessionQuestions(groupId, sessionId)
+      })
+      console.log('🔄 [useQuestionGeneration] Invalidated questions cache after deletion')
     } catch (error) {
-      console.warn('Some cleanup operations failed:', error)
+      console.warn('Question deletion failed:', error)
       // Don't throw - we don't want to break the UI flow
     }
   }
@@ -323,7 +272,7 @@ export function useGroupQuestionGeneration(groupId: string, sessionId: string) {
     }
 
     // Fixed logic: Check if preset is already selected AND has actual questions loaded
-    const hasActualQuestions = (generatedCounts.easy + generatedCounts.medium + generatedCounts.hard) > 0
+    const hasActualQuestions = (cachedCounts.easy + cachedCounts.medium + cachedCounts.hard) > 0
     const isPresetAlreadyActive = currentPreset && currentPreset.id === presetInfo.id && hasActualQuestions
 
     if (isPresetAlreadyActive) {
@@ -381,11 +330,10 @@ export function useGroupQuestionGeneration(groupId: string, sessionId: string) {
 
   return {
     generatingState,
-    generatedCounts,
-    shareTokens,
+    generatedCounts: cachedCounts, // FIXED: Use cached data directly
+    shareTokens: cachedShareTokens, // FIXED: Use cached data directly
     currentPreset,
-    setGeneratedCounts,
-    setShareTokens,
+    // Remove setters for cached data since they're managed by the cache
     handleGenerateQuestions,
     handleGenerateAllQuestions,
     handleGenerateFromPreset,

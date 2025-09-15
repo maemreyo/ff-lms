@@ -88,6 +88,12 @@ export interface GeneratedQuestions {
     medium: number
     hard: number
   }
+  sequentialResults?: {
+    easy: GeneratedQuestions | null,
+    medium: GeneratedQuestions | null, 
+    hard: GeneratedQuestions | null,
+    allQuestions: GeneratedQuestion[]
+  }
 }
 
 export interface CustomPrompt {
