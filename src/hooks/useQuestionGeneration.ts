@@ -33,6 +33,7 @@ interface GenerateAllQuestionsParams {
     medium: number
     hard: number
   } // Optional preset counts for intelligent generation
+  customPromptId?: string // Optional custom prompt ID for using specialized prompts
 }
 
 interface QuestionGenerationResult {
@@ -120,8 +121,8 @@ interface UseGenerateAllQuestionsOptions {
 
 export function useGenerateAllQuestions(options?: UseGenerateAllQuestionsOptions) {
   return useMutation({
-    mutationFn: async ({ loop, groupId, sessionId, presetCounts }: GenerateAllQuestionsParams) => {
-      console.log('Generating all questions for loop:', loop?.id, presetCounts ? 'with preset counts' : '')
+    mutationFn: async ({ loop, groupId, sessionId, presetCounts, customPromptId }: GenerateAllQuestionsParams) => {
+      console.log('Generating all questions for loop:', loop?.id, presetCounts ? 'with preset counts' : '', customPromptId ? `using custom prompt: ${customPromptId}` : '')
 
       if (!loop) {
         throw new Error('No loop data available')
@@ -137,26 +138,31 @@ export function useGenerateAllQuestions(options?: UseGenerateAllQuestionsOptions
         hard: presetCounts?.hard || 1
       }
 
+      const requestBody = {
+        transcript: loop.transcript,
+        loop: {
+          id: loop.id,
+          videoTitle: loop.videoTitle || loop.title,
+          startTime: loop.startTime || loop.start_time || 0,
+          endTime: loop.endTime || loop.end_time || 300
+        },
+        segments: loop.segments,
+        preset: preset, // Use preset instead of difficulty
+        saveToDatabase: true,
+        groupId: groupId,
+        sessionId: sessionId,
+        ...(customPromptId && { customPromptId }) // Include customPromptId if provided
+      }
+
+      console.log('🎯 Request includes customPromptId:', !!customPromptId)
+
       const response = await fetch('/api/questions/generate', {
         method: 'POST',
         headers: {
           ...headers,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          transcript: loop.transcript,
-          loop: {
-            id: loop.id,
-            videoTitle: loop.videoTitle || loop.title,
-            startTime: loop.startTime || loop.start_time || 0,
-            endTime: loop.endTime || loop.end_time || 300
-          },
-          segments: loop.segments,
-          preset: preset, // Use preset instead of difficulty
-          saveToDatabase: true,
-          groupId: groupId,
-          sessionId: sessionId
-        })
+        body: JSON.stringify(requestBody)
       })
 
       if (!response.ok) {

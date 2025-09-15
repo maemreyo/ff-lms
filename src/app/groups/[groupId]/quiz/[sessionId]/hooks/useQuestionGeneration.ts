@@ -228,7 +228,7 @@ export function useGroupQuestionGeneration(groupId: string, sessionId: string) {
     await generateQuestionsMutation.mutateAsync(generationParams)
   }
 
-  const handleGenerateAllQuestions = async (loopData: any, presetCounts?: GeneratedCounts) => {
+  const handleGenerateAllQuestions = async (loopData: any, presetCounts?: GeneratedCounts, customPromptId?: string) => {
     if (!loopData) {
       toast.error('No loop data available for question generation')
       return
@@ -244,12 +244,12 @@ export function useGroupQuestionGeneration(groupId: string, sessionId: string) {
     }
 
     setGeneratingState(prev => ({ ...prev, all: true }))
-    
-    // Use preset counts if provided
-    const generationParams = presetCounts 
-      ? { loop, groupId, sessionId, presetCounts }
-      : { loop, groupId, sessionId }
-      
+
+    // Use preset counts if provided, and include customPromptId
+    const generationParams = presetCounts
+      ? { loop, groupId, sessionId, presetCounts, customPromptId }
+      : { loop, groupId, sessionId, customPromptId }
+
     await generateAllQuestionsMutation.mutateAsync(generationParams)
   }
 
@@ -302,7 +302,15 @@ export function useGroupQuestionGeneration(groupId: string, sessionId: string) {
 
       // Use sequential generation with deduplication instead of separate API calls
       console.log('🔄 Using handleGenerateAllQuestions for sequential generation with deduplication')
-      await handleGenerateAllQuestions(loopData, distribution)
+      // Pass the preset ID as customPromptId for custom question generation
+      // Remove the 'custom-' prefix if present to get the actual database ID
+      const customPromptId = presetInfo.isCustom
+        ? presetInfo.id.startsWith('custom-')
+          ? presetInfo.id.replace('custom-', '')
+          : presetInfo.id
+        : undefined
+      console.log('🎯 Using customPromptId:', customPromptId, 'from presetInfo.id:', presetInfo.id)
+      await handleGenerateAllQuestions(loopData, distribution, customPromptId)
 
       // Set current preset after successful generation
       const newPreset = {
