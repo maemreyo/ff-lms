@@ -286,6 +286,7 @@ export default function SetupPage({ params }: SetupPageProps) {
   return (
     <div className="mx-auto max-w-6xl">
       <GroupPresetSelectionView
+        groupId={groupId}
         onPresetSelect={handlePresetSelect}
         onlineParticipants={onlineParticipants}
         onGenerateQuestions={handleGenerateQuestions}
