@@ -203,7 +203,7 @@ export function GroupQuizPreview({
             </TabsList>
             {difficultyGroups.map((group, setIndex) => (
               <TabsContent key={setIndex} value={`set-${setIndex}`}>
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-1 xl:grid-cols-2 2xl:grid-cols-3">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-1 xl:grid-cols-1 2xl:grid-cols-2">
                   {group.questions.map((question, questionIndex) => (
                     <div
                       key={question.id || questionIndex}
