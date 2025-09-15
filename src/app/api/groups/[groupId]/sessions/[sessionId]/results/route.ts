@@ -48,6 +48,17 @@ export async function GET(
       .eq('group_id', groupId)
       .single()
 
+    // console.log('🔍 [Results API] Session debug:', {
+    //   sessionId,
+    //   groupId,
+    //   sessionError,
+    //   hasSession: !!session,
+    //   sessionKeys: session ? Object.keys(session) : [],
+    //   video_url: session?.video_url,
+    //   video_title: session?.video_title,
+    //   loop_data: session?.loop_data
+    // })
+
     if (sessionError || !session) {
       return corsResponse({ error: 'Session not found' }, 404)
     }
@@ -68,19 +79,36 @@ export async function GET(
 
       // Transform the database result back to the frontend format
       if (userResult && userResult.result_data) {
+        // Extract video URL from session loop_data (actual location from logs)
+        const videoUrl = session.loop_data?.videoUrl || session.video_url || null
+        // console.log('🎥 [Results API] Debug video URL:', {
+        //   sessionId,
+        //   sessionVideoUrl: session.video_url,
+        //   loopDataVideoUrl: session.loop_data?.videoUrl,
+        //   finalVideoUrl: videoUrl,
+        //   hasLoopData: !!session.loop_data
+        // })
+
+        // Transform results and add videoUrl to each question
+        const resultsWithVideoUrl = (userResult.result_data.allResults || []).map((result: any) => ({
+          ...result,
+          videoUrl: videoUrl
+        }))
+
         const transformedResult = {
           sessionId: `group_${sessionId}_${userResult.id}`,
           score: userResult.score,
           totalQuestions: userResult.total_questions,
           correctAnswers: userResult.correct_answers,
-          results: userResult.result_data.allResults || [],
+          results: resultsWithVideoUrl,
           submittedAt: userResult.completed_at,
           setIndex: 0, // Could be derived from result_data if needed
           difficulty: 'mixed',
           userData: { userId: user.id, email: user.email },
           groupId,
           groupSessionId: sessionId,
-          isGroupQuiz: true
+          isGroupQuiz: true,
+          videoUrl: videoUrl // Also add videoUrl at the top level
         }
 
         return corsResponse({ userResult: transformedResult })
