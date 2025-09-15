@@ -70,6 +70,11 @@ export function GroupQuizPreview({
 }: GroupQuizPreviewProps) {
   const [showAnswers, setShowAnswers] = useState(false)
 
+  // 🔍 DEBUG: Log difficulty groups order
+  // console.log('🎯 GroupQuizPreview - difficultyGroups order:',
+  //   difficultyGroups.map(g => g.difficulty)
+  // )
+
   const totalQuestions = difficultyGroups.reduce((sum, group) => sum + group.questions.length, 0)
   const easyQuestions = difficultyGroups
     .filter(g => g.difficulty === 'easy')

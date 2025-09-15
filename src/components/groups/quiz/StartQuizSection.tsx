@@ -20,19 +20,19 @@ export function StartQuizSection({
   const hasQuestions = totalGenerated > 0 || Object.keys(shareTokens).some(key => shareTokens[key])
   const availableTokensCount = Object.keys(shareTokens).filter(key => shareTokens[key]).length
   
-  console.log('🎮 StartQuizSection debug:', {
-    totalGenerated,
-    shareTokens,
-    hasQuestions,
-    availableTokensCount
-  })
+  // console.log('🎮 StartQuizSection debug:', {
+  //   totalGenerated,
+  //   shareTokens,
+  //   hasQuestions,
+  //   availableTokensCount
+  // })
   
   if (!hasQuestions) {
-    console.log('❌ StartQuizSection hidden - no questions available')
+    // console.log('❌ StartQuizSection hidden - no questions available')
     return null
   }
 
-  console.log('✅ StartQuizSection showing - questions available')
+  // console.log('✅ StartQuizSection showing - questions available')
 
   const handleStartQuiz = () => {
     if (onStartQuiz) {

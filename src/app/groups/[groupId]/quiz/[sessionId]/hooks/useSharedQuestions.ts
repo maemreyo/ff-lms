@@ -32,7 +32,7 @@ export function useSharedQuestions({
   const { data, isLoading, error, isFetching, dataUpdatedAt, isStale } = useQuery({
     queryKey: quizQueryKeys.sessionQuestions(groupId, sessionId),
     queryFn: async () => {
-      console.log('🔄 [useSharedQuestions] Fetching questions from API for cache')
+      // console.log('🔄 [useSharedQuestions] Fetching questions from API for cache')
 
       const headers = await getAuthHeaders()
       const response = await fetch(`/api/groups/${groupId}/sessions/${sessionId}/questions`, {
@@ -45,7 +45,7 @@ export function useSharedQuestions({
       }
 
       const questionsData = await response.json()
-      console.log('📦 [useSharedQuestions] Raw API response:', questionsData)
+      // console.log('📦 [useSharedQuestions] Raw API response:', questionsData)
 
       // Parse the API response structure
       if (questionsData.success && questionsData.data?.questionsByDifficulty) {
@@ -71,12 +71,12 @@ export function useSharedQuestions({
           questionsByDifficulty: questionsByDiff
         }
 
-        console.log('✅ [useSharedQuestions] Parsed and cached:', result)
+        // console.log('✅ [useSharedQuestions] Parsed and cached:', result)
         return result
       }
 
       // Return empty state if no questions found
-      console.log('⚠️ [useSharedQuestions] No questions found in API response:', questionsData)
+      // console.log('⚠️ [useSharedQuestions] No questions found in API response:', questionsData)
       return {
         shareTokens: {},
         generatedCounts: { easy: 0, medium: 0, hard: 0 },
@@ -92,16 +92,16 @@ export function useSharedQuestions({
 
   // Debug cache status for active/preview pages
   if (typeof window !== 'undefined' && (window.location.pathname.includes('/active') || window.location.pathname.includes('/preview'))) {
-    console.log('🔍 [useSharedQuestions] Cache status:', {
-      hasData: !!data,
-      shareTokensCount: data ? Object.keys(data.shareTokens).length : 0,
-      isLoading,
-      isFetching,
-      error: error?.message,
-      isStale,
-      dataAge: dataUpdatedAt ? `${Math.floor((Date.now() - dataUpdatedAt) / 1000)}s ago` : 'never',
-      cacheKey: quizQueryKeys.sessionQuestions(groupId, sessionId)
-    })
+    // console.log('🔍 [useSharedQuestions] Cache status:', {
+    //   hasData: !!data,
+    //   shareTokensCount: data ? Object.keys(data.shareTokens).length : 0,
+    //   isLoading,
+    //   isFetching,
+    //   error: error?.message,
+    //   isStale,
+    //   dataAge: dataUpdatedAt ? `${Math.floor((Date.now() - dataUpdatedAt) / 1000)}s ago` : 'never',
+    //   cacheKey: quizQueryKeys.sessionQuestions(groupId, sessionId)
+    // })
   }
 
   return {
