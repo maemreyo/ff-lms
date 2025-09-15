@@ -41,6 +41,7 @@ const RenderedExplanation = ({
   explanation?: string
   videoUrl?: string
 }) => {
+  console.log("videoUrl", videoUrl)
   if (!explanation) return null
 
   const segments = parseExplanationWithTimeframes(explanation)

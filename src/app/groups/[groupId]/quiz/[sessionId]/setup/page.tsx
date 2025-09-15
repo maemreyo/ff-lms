@@ -24,7 +24,7 @@ export default function SetupPage({ params }: SetupPageProps) {
     group,
     user,
     onlineParticipants,
-    navigateToLobby,
+    navigateToPreview,
     navigateToInfo,
     participantsRefreshing,
     refreshParticipants
@@ -130,16 +130,23 @@ export default function SetupPage({ params }: SetupPageProps) {
 
   const handleStartQuiz = useCallback(async (shareTokens: Record<string, string>) => {
     console.log('🚀 Starting quiz from setup with shareTokens:', shareTokens)
-    
-    // Broadcast to members and transition to lobby
+
+    // Store shareTokens in sessionStorage for navigation
+    if (typeof window !== 'undefined') {
+      const sessionStorageKey = `quiz-shareTokens-${sessionId}`
+      sessionStorage.setItem(sessionStorageKey, JSON.stringify(shareTokens))
+      console.log('💾 Stored shareTokens in sessionStorage for navigation')
+    }
+
+    // Broadcast to members and transition to preview with tokens
     if (permissions.canManageQuiz()) {
       const success = await broadcastQuizSessionStart(session?.quiz_title || 'Quiz Session', shareTokens)
       if (success) {
-        console.log('✅ Quiz session start broadcasted, navigating to lobby')
-        navigateToLobby()
+        console.log('✅ Quiz session start broadcasted, navigating to preview with tokens')
+        navigateToPreview()
       }
     }
-  }, [permissions, broadcastQuizSessionStart, session?.quiz_title, navigateToLobby])
+  }, [permissions, broadcastQuizSessionStart, session?.quiz_title, navigateToPreview, sessionId])
 
   // Question generation handlers
   const handleGenerateQuestions = async (difficulty: 'easy' | 'medium' | 'hard') => {

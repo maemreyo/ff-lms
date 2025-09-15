@@ -36,6 +36,7 @@ export function useGroupQuizWithProgress({ groupId, sessionId }: UseGroupQuizWit
   const [shouldCheckResults, setShouldCheckResults] = useState(false)
 
   // React Query for checking existing results - Optimized caching
+  const isDevelopment = process.env.NODE_ENV === 'development'
   const {
     data: existingResults,
     isLoading: isCheckingExistingResults,
@@ -48,12 +49,12 @@ export function useGroupQuizWithProgress({ groupId, sessionId }: UseGroupQuizWit
       return checkExistingResults(groupId)
     },
     enabled: false, // We'll trigger manually
-    staleTime: 2 * 60 * 1000, // Cache for 2 minutes - reasonable for existing results
-    gcTime: 5 * 60 * 1000, // Keep in memory for 5 minutes
+    staleTime: isDevelopment ? 0 : 2 * 60 * 1000, // No cache in dev, 2 minutes in prod
+    gcTime: isDevelopment ? 0 : 5 * 60 * 1000, // No memory cache in dev, 5 minutes in prod
     retry: false, // Don't retry on error for user experience
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false, // Don't refetch on network reconnection
-    refetchOnMount: false // Don't refetch on component remount
+    refetchOnWindowFocus: isDevelopment ? true : false, // Always refetch on focus in dev
+    refetchOnReconnect: isDevelopment ? true : false, // Always refetch on reconnect in dev
+    refetchOnMount: isDevelopment ? true : false // Always refetch on mount in dev
   })
 
   // Handle query results

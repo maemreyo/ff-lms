@@ -86,8 +86,8 @@ export function useSharedQuestions({
     enabled: !!groupId && !!sessionId && enabled,
     ...quizQueryOptions.questions, // Use optimized cache settings
     // Override to ensure cross-page caching
-    staleTime: 30 * 60 * 1000, // 30 minutes
-    refetchOnMount: false // CRITICAL: Don't refetch if cache exists
+    staleTime: process.env.NODE_ENV === 'development' ? 0 : 30 * 60 * 1000, // No cache in dev, 30 minutes in prod
+    refetchOnMount: process.env.NODE_ENV === 'development' ? true : false, // Always refetch in dev
   })
 
   // Debug cache status for active/preview pages

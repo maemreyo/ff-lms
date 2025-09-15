@@ -60,48 +60,52 @@ export const quizQueryKeys = {
 
 /**
  * Query options factory with optimized defaults
+ * Development mode: Cache disabled for better debugging
+ * Production mode: Optimized cache settings
  */
+const isDevelopment = process.env.NODE_ENV === 'development'
+
 export const quizQueryOptions = {
   // Short-lived data (frequently changing)
   realtime: {
-    staleTime: 30 * 1000, // 30 seconds
-    gcTime: 2 * 60 * 1000, // 2 minutes
+    staleTime: isDevelopment ? 0 : 30 * 1000, // No cache in dev, 30 seconds in prod
+    gcTime: isDevelopment ? 0 : 2 * 60 * 1000, // No memory cache in dev, 2 minutes in prod
     refetchInterval: false,
-    refetchOnWindowFocus: false,
+    refetchOnWindowFocus: isDevelopment ? true : false, // Always refetch on focus in dev
   },
-  
+
   // Medium-lived data (occasionally changing)
   session: {
-    staleTime: 2 * 60 * 1000, // 2 minutes  
-    gcTime: 5 * 60 * 1000, // 5 minutes
-    refetchOnWindowFocus: false,
+    staleTime: isDevelopment ? 0 : 2 * 60 * 1000, // No cache in dev, 2 minutes in prod
+    gcTime: isDevelopment ? 0 : 5 * 60 * 1000, // No memory cache in dev, 5 minutes in prod
+    refetchOnWindowFocus: isDevelopment ? true : false, // Always refetch on focus in dev
     refetchOnReconnect: true,
   },
 
   // Long-lived data (rarely changing)
   static: {
-    staleTime: 10 * 60 * 1000, // 10 minutes
-    gcTime: 30 * 60 * 1000, // 30 minutes
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
+    staleTime: isDevelopment ? 0 : 10 * 60 * 1000, // No cache in dev, 10 minutes in prod
+    gcTime: isDevelopment ? 0 : 30 * 60 * 1000, // No memory cache in dev, 30 minutes in prod
+    refetchOnWindowFocus: isDevelopment ? true : false, // Always refetch on focus in dev
+    refetchOnReconnect: isDevelopment ? true : false, // Always refetch on reconnect in dev
   },
 
   // Questions data (changes only when regenerated) - OPTIMIZED for persistence caching
   questions: {
-    staleTime: 60 * 60 * 1000, // 1 hour - longer for persistent cache
-    gcTime: 24 * 60 * 60 * 1000, // 24 hours - very long garbage collection for persistence
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
-    refetchOnMount: false, // CRITICAL: Don't refetch on mount if data exists
+    staleTime: isDevelopment ? 0 : 60 * 60 * 1000, // No cache in dev, 1 hour in prod
+    gcTime: isDevelopment ? 0 : 24 * 60 * 60 * 1000, // No memory cache in dev, 24 hours in prod
+    refetchOnWindowFocus: isDevelopment ? true : false, // Always refetch on focus in dev
+    refetchOnReconnect: isDevelopment ? true : false, // Always refetch on reconnect in dev
+    refetchOnMount: isDevelopment ? true : false, // Always refetch on mount in dev
     retry: 1, // Reduce retries for cached data
   },
 
   // Results data (immutable once created)
   results: {
-    staleTime: Infinity, // Never stale once loaded
-    gcTime: 60 * 60 * 1000, // 1 hour
-    refetchOnWindowFocus: false,
-    refetchOnReconnect: false,
+    staleTime: isDevelopment ? 0 : Infinity, // No cache in dev, never stale in prod
+    gcTime: isDevelopment ? 0 : 60 * 60 * 1000, // No memory cache in dev, 1 hour in prod
+    refetchOnWindowFocus: isDevelopment ? true : false, // Always refetch on focus in dev
+    refetchOnReconnect: isDevelopment ? true : false, // Always refetch on reconnect in dev
   }
 } as const
 
