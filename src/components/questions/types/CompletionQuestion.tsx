@@ -5,7 +5,6 @@
 
 import React, { useState, useEffect, useRef } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { ExplanationWithTimeframes } from '@/components/groups/quiz/ExplanationWithTimeframes'
 import { QuestionComponentProps } from '@/lib/registry/QuestionTypeRegistry'
@@ -21,9 +20,6 @@ import { useWordSelection } from '@/lib/hooks/use-word-selection'
 export function CompletionQuestion({
   question,
   questionIndex,
-  totalQuestions,
-  currentSetIndex,
-  totalSets,
   responses,
   onAnswerSelect,
   showResults = false,
@@ -249,8 +245,8 @@ export function CompletionPreview({
     let result = template
     blanks.forEach(blank => {
       const placeholder = '___'
-      // const replacement = `[${blank.acceptedAnswers[0]}]`
-      // result = result.replace(placeholder, replacement)
+      const replacement = `[${blank.acceptedAnswers[0]}]`
+      result = result.replace(placeholder, replacement)
     })
 
     return result

@@ -3,17 +3,9 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Brain,
   Lightbulb,
-  Sparkles,
   Target,
   Trophy,
-  Zap,
-  Headphones,
-  Search,
-  Music,
-  BookOpen,
-  MessageSquare,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useCustomPromptPresets } from "@/hooks/use-custom-prompts";
@@ -249,7 +241,7 @@ export function GroupPresetSelectionView({
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Confirmation Dialog */}
       {showConfirmationDialog && currentPreset && pendingPreset && (
         <PresetConfirmationDialog
@@ -279,7 +271,14 @@ export function GroupPresetSelectionView({
         currentPreset={currentPreset}
       />
 
-      {/* Question Type Selector */}
+      {/* Start Quiz Section - Moved to top when questions available */}
+      <StartQuizSection
+        totalGenerated={totalGenerated}
+        shareTokens={shareTokens}
+        onStartQuiz={onStartQuiz}
+      />
+
+      {/* Question Type Selector - More compact */}
       <QuestionTypeSelector
         selectedType={selectedQuestionType}
         onTypeChange={(type) => {
@@ -348,13 +347,6 @@ export function GroupPresetSelectionView({
           onGenerateQuestions={handleCustomGenerateQuestions}
         />
       )}
-
-      {/* Start Quiz Section */}
-      <StartQuizSection
-        totalGenerated={totalGenerated}
-        shareTokens={shareTokens}
-        onStartQuiz={onStartQuiz}
-      />
     </div>
   );
 }
