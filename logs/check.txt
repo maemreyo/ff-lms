@@ -1,0 +1,11 @@
+với mong muốn ôn luyện kỹ năng nghe master, tôi đang tính triển khai làm các dạng bài khác của phần kỹ năng nghe như:
+
+Trắc nghiệm (Multiple Choice): Chọn một hoặc nhiều đáp án đúng từ các lựa chọn cho sẵn.
+Nối thông tin (Matching): Nối một danh sách các mục được đánh số với một danh sách các lựa chọn trên đề thi.
+Điền nhãn cho Sơ đồ, Bản đồ, Biểu đồ (Plan, map, diagram labelling): Hoàn thành các nhãn trên một bản vẽ, bản đồ hoặc biểu đồ.
+Hoàn thành Biểu mẫu, Ghi chú, Bảng, Lưu đồ, Tóm tắt (Form, note, table, flow-chart, summary completion): Điền vào các chỗ trống trong một bảng tóm tắt của một phần hoặc toàn bộ nội dung bài nghe.
+Hoàn thành câu (Sentence completion): Điền vào chỗ trống trong mỗi câu bằng cách sử dụng thông tin từ bài nghe.
+Câu hỏi trả lời ngắn (Short-answer questions): Đọc câu hỏi và viết một câu trả lời ngắn gọn.
+
+Theo bạn, với cấu trúc hiện tại của code đã đủ để triển khai dạng bài tiếp theo chưa? Hiện tại mới chỉ có multiple choice.
+Điều tra hiện trạng và đưa ra hướng giải quyết
