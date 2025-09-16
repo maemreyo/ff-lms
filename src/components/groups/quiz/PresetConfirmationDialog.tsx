@@ -2,16 +2,13 @@
 
 import { AlertTriangle, Clock, Target } from 'lucide-react'
 import { Button } from '../../ui/button'
-import { Badge } from '../../ui/badge'
-import { Separator } from '../../ui/separator'
-import { Alert, AlertDescription } from '../../ui/alert'
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogFooter, 
-  DialogHeader, 
-  DialogTitle 
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
 } from '../../ui/dialog'
 
 interface PresetConfirmationDialogProps {
@@ -52,119 +49,110 @@ export function PresetConfirmationDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onCancel()}>
-      <DialogContent className="max-w-2xl border-amber-200">
+      <DialogContent className="max-w-2xl">
         <DialogHeader>
-          <div className="flex items-center gap-3">
-            <div className="rounded-full bg-amber-100 p-2">
-              <AlertTriangle className="h-5 w-5 text-amber-600" />
+          <div className="text-center">
+            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gray-100">
+              <AlertTriangle className="h-6 w-6 text-gray-600" />
             </div>
-            <div className="text-left">
-              <DialogTitle className="text-lg font-semibold text-gray-900">
-                Replace Existing Questions?
-              </DialogTitle>
-              <DialogDescription className="mt-1">
-                You already have questions generated from another preset
-              </DialogDescription>
-            </div>
+            <DialogTitle className="text-xl font-semibold text-gray-900">
+              Replace Existing Questions?
+            </DialogTitle>
+            <DialogDescription className="mt-2 text-gray-600">
+              You already have questions from another preset. This action will replace them.
+            </DialogDescription>
           </div>
         </DialogHeader>
 
         <div className="space-y-6">
           {/* Current Preset Info */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <Target className="h-4 w-4 text-blue-600" />
-              <span className="font-medium text-gray-900">Current Preset:</span>
-              <Badge variant="secondary" className="bg-blue-100 text-blue-700">
-                {currentPreset.name}
-              </Badge>
+          <div className="rounded-lg border border-gray-200 bg-gray-50/50 p-4">
+            <div className="mb-3 flex items-center gap-2">
+              <Target className="h-4 w-4 text-gray-600" />
+              <span className="text-sm font-medium text-gray-900">Current:</span>
+              <span className="font-semibold text-gray-900">{currentPreset.name}</span>
             </div>
-            <Alert className="border-blue-200 bg-blue-50">
-              <AlertDescription className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <Badge variant="outline" className="bg-green-50 border-green-200 text-green-700">
-                      Easy: {currentPreset.distribution.easy}
-                    </Badge>
-                    <Badge variant="outline" className="bg-yellow-50 border-yellow-200 text-yellow-700">
-                      Medium: {currentPreset.distribution.medium}
-                    </Badge>
-                    <Badge variant="outline" className="bg-red-50 border-red-200 text-red-700">
-                      Hard: {currentPreset.distribution.hard}
-                    </Badge>
-                  </div>
-                  <div className="text-right">
-                    <Badge className="bg-blue-600">{currentTotal} total</Badge>
-                    <div className="flex items-center gap-1 text-xs text-gray-500 mt-1">
-                      <Clock className="h-3 w-3" />
-                      {timeSinceCreation < 1 ? 'Just now' : `${timeSinceCreation}m ago`}
-                    </div>
-                  </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <span className="rounded-full bg-white px-3 py-1 text-sm text-gray-700">
+                  Easy: {currentPreset.distribution.easy}
+                </span>
+                <span className="rounded-full bg-white px-3 py-1 text-sm text-gray-700">
+                  Medium: {currentPreset.distribution.medium}
+                </span>
+                <span className="rounded-full bg-white px-3 py-1 text-sm text-gray-700">
+                  Hard: {currentPreset.distribution.hard}
+                </span>
+              </div>
+              <div className="text-right">
+                <div className="rounded-full bg-indigo-100 px-3 py-1 text-sm font-medium text-indigo-700">
+                  {currentTotal} questions
                 </div>
-              </AlertDescription>
-            </Alert>
+                <div className="flex items-center justify-end gap-1 text-xs text-gray-500 mt-1">
+                  <Clock className="h-3 w-3" />
+                  {timeSinceCreation < 1 ? 'Just now' : `${timeSinceCreation}m ago`}
+                </div>
+              </div>
+            </div>
           </div>
 
-          <Separator />
+          <div className="my-4 text-center">
+            <span className="text-sm text-gray-400">↓</span>
+          </div>
 
           {/* New Preset Info */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
+          <div className="rounded-lg border border-indigo-200 bg-indigo-50/50 p-4">
+            <div className="mb-3 flex items-center gap-2">
               <Target className="h-4 w-4 text-indigo-600" />
-              <span className="font-medium text-gray-900">New Preset:</span>
-              <Badge variant="secondary" className="bg-indigo-100 text-indigo-700">
-                {newPreset.name}
-              </Badge>
+              <span className="text-sm font-medium text-gray-900">New:</span>
+              <span className="font-semibold text-indigo-900">{newPreset.name}</span>
             </div>
-            <Alert className="border-indigo-200 bg-indigo-50">
-              <AlertDescription>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <Badge variant="outline" className="bg-green-50 border-green-200 text-green-700">
-                      Easy: {newPreset.distribution.easy}
-                    </Badge>
-                    <Badge variant="outline" className="bg-yellow-50 border-yellow-200 text-yellow-700">
-                      Medium: {newPreset.distribution.medium}
-                    </Badge>
-                    <Badge variant="outline" className="bg-red-50 border-red-200 text-red-700">
-                      Hard: {newPreset.distribution.hard}
-                    </Badge>
-                  </div>
-                  <Badge className="bg-indigo-600">{newTotal} total</Badge>
-                </div>
-              </AlertDescription>
-            </Alert>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <span className="rounded-full bg-white px-3 py-1 text-sm text-gray-700">
+                  Easy: {newPreset.distribution.easy}
+                </span>
+                <span className="rounded-full bg-white px-3 py-1 text-sm text-gray-700">
+                  Medium: {newPreset.distribution.medium}
+                </span>
+                <span className="rounded-full bg-white px-3 py-1 text-sm text-gray-700">
+                  Hard: {newPreset.distribution.hard}
+                </span>
+              </div>
+              <div className="rounded-full bg-indigo-600 px-3 py-1 text-sm font-medium text-white">
+                {newTotal} questions
+              </div>
+            </div>
           </div>
 
           {/* Warning Message */}
-          <Alert variant="destructive" className="border-amber-200 bg-amber-50">
-            <AlertTriangle className="h-4 w-4 text-amber-600" />
-            <AlertDescription className="text-amber-800">
-              <div className="space-y-2">
-                <p className="font-medium">This will permanently replace your current questions</p>
-                <p className="text-sm">
-                  The existing {currentTotal} questions will be deleted and cannot be recovered. 
-                  New questions will be generated according to the selected preset.
+          <div className="rounded-lg border border-red-200 bg-red-50/50 p-4">
+            <div className="flex gap-3">
+              <AlertTriangle className="h-4 w-4 text-red-600 mt-0.5 flex-shrink-0" />
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-red-900">This will replace your current questions</p>
+                <p className="text-xs text-red-700">
+                  Existing {currentTotal} questions will be deleted. New questions will be generated from the selected preset.
                 </p>
               </div>
-            </AlertDescription>
-          </Alert>
+            </div>
+          </div>
         </div>
 
         {/* Action Buttons */}
-        <DialogFooter className="gap-3">
+        <DialogFooter className="gap-3 pt-2">
           <Button
             variant="outline"
             onClick={onCancel}
-            className="flex-1 sm:flex-none"
+            className="flex-1 border-gray-300 text-gray-700 hover:bg-gray-50"
           >
             Cancel
           </Button>
           <Button
             onClick={onConfirm}
-            className="flex-1 sm:flex-none bg-indigo-600 hover:bg-indigo-700"
+            className="flex-1 bg-gradient-to-r from-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:to-purple-700"
           >
-            Replace & Generate New Questions
+            Replace Questions
           </Button>
         </DialogFooter>
       </DialogContent>
