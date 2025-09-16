@@ -514,10 +514,22 @@ export class QuestionGenerator {
           if (finalQuestions.length >= targetQuestionCount) break;
 
           // Enhanced duplicate check based on question text similarity
-          const questionText = newQuestion.question.toLowerCase().trim();
-          const isDuplicate = finalQuestions.some((existing) =>
-            AIUtils.areQuestionsDuplicate(existing.question, questionText)
-          );
+          // Handle both multiple-choice and completion question formats
+          const getQuestionText = (q: any) => {
+            if (q.question) {
+              return q.question.toLowerCase().trim();
+            } else if (q.transcript) {
+              // For completion questions, use transcript as the identifying text
+              return q.transcript.toLowerCase().trim();
+            }
+            return '';
+          };
+
+          const questionText = getQuestionText(newQuestion);
+          const isDuplicate = finalQuestions.some((existing) => {
+            const existingText = getQuestionText(existing);
+            return AIUtils.areQuestionsDuplicate(existingText, questionText);
+          });
 
           if (!isDuplicate) {
             finalQuestions.push(newQuestion);
@@ -588,31 +600,76 @@ export class QuestionGenerator {
     totalQuestions: number,
     forceDifficulty?: string
   ): GeneratedQuestion {
-    // Shuffle answer options to randomize correct answer position
-    const correctAnswerIndex = ["A", "B", "C", "D"].indexOf(
-      q.correctAnswer || "A"
-    );
+    // Determine question type based on structure
+    const questionType = this.detectQuestionType(q);
+
+    // Common fields for all question types
+    const baseQuestion = {
+      id: q.id || `q_${loop.id}_${forceDifficulty || q.difficulty}_${index + 1}`,
+      difficulty: forceDifficulty || q.difficulty || 'medium',
+      explanation: q.explanation || "No explanation provided",
+      timestamp: q.timestamp || q.audioSegment?.start || loop.startTime + (index * (loop.endTime - loop.startTime)) / totalQuestions,
+    };
+
+    // Process based on question type
+    switch (questionType) {
+      case 'multiple-choice':
+        return this.processMultipleChoiceQuestion(q, loop, baseQuestion);
+
+      case 'completion':
+        return this.processCompletionQuestion(q, baseQuestion);
+
+      default:
+        // For any other question type, preserve original structure with minimal processing
+        return {
+          ...baseQuestion,
+          type: q.type || questionType,
+          ...q // Preserve all original fields
+        } as GeneratedQuestion;
+    }
+  }
+
+  /**
+   * Detect question type based on structure
+   */
+  private detectQuestionType(q: any): string {
+    // Multiple choice: has options array and correctAnswer
+    if (q.options && Array.isArray(q.options) && q.correctAnswer && q.question) {
+      return 'multiple-choice';
+    }
+
+    // Completion: has blanks, transcript, or exerciseSubType
+    if (q.type === 'fill-blank' || q.exerciseSubType || q.blanks || q.transcript) {
+      return 'completion';
+    }
+
+    // Future question types can be added here:
+    // if (q.pairs && q.type === 'matching') return 'matching';
+    // if (q.items && q.type === 'drag-drop') return 'drag-drop';
+    // if (q.statement && q.type === 'true-false') return 'true-false';
+
+    // Default fallback
+    return q.type || 'unknown';
+  }
+
+  /**
+   * Process multiple-choice question with shuffling
+   */
+  private processMultipleChoiceQuestion(q: any, loop: SavedLoop, baseQuestion: any): GeneratedQuestion {
+    const correctAnswerIndex = ["A", "B", "C", "D"].indexOf(q.correctAnswer || "A");
     const correctOption = q.options[correctAnswerIndex] || q.options[0];
 
     // Create shuffled array with seeded randomization for consistency
-    const seed = loop.id + (forceDifficulty || q.difficulty) + index;
+    const seed = loop.id + baseQuestion.difficulty + baseQuestion.id;
     const shuffledData = AIUtils.shuffleOptionsWithSeed(q.options, seed);
     const newCorrectIndex = shuffledData.options.indexOf(correctOption);
-    const newCorrectAnswer = ["A", "B", "C", "D"][newCorrectIndex] as
-      | "A"
-      | "B"
-      | "C"
-      | "D";
+    const newCorrectAnswer = ["A", "B", "C", "D"][newCorrectIndex] as "A" | "B" | "C" | "D";
 
     return {
-      id: `q_${loop.id}_${forceDifficulty || q.difficulty}_${index + 1}`,
+      ...baseQuestion,
       question: q.question,
       options: shuffledData.options,
       correctAnswer: newCorrectAnswer,
-      explanation: q.explanation || "No explanation provided",
-      difficulty: forceDifficulty || (["easy", "medium", "hard"].includes(q.difficulty)
-        ? q.difficulty
-        : "medium"),
       type: [
         "main_idea",
         "specific_detail",
@@ -620,13 +677,23 @@ export class QuestionGenerator {
         "inference",
         "speaker_tone",
         "language_function",
-      ].includes(q.type)
-        ? q.type
-        : forceDifficulty ? "specific_detail" : "main_idea",
-      timestamp:
-        q.timestamp ??
-        loop.startTime +
-          (index * (loop.endTime - loop.startTime)) / totalQuestions,
+      ].includes(q.type) ? q.type : "specific_detail",
+    } as GeneratedQuestion;
+  }
+
+  /**
+   * Process completion question with minimal changes
+   */
+  private processCompletionQuestion(q: any, baseQuestion: any): GeneratedQuestion {
+    return {
+      ...baseQuestion,
+      type: q.type || 'completion',
+      content: {
+        template: q.transcript || '',
+        blanks: q.blanks || [],
+      },
+      question: q.transcript || '',
+      ...q // Preserve all original fields
     } as GeneratedQuestion;
   }
 }

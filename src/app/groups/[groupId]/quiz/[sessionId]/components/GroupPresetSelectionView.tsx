@@ -23,6 +23,7 @@ import { PresetCard } from "../../../../../../components/groups/quiz/PresetCard"
 import { CustomGenerationSection } from "../../../../../../components/groups/quiz/CustomGenerationSection";
 import { StartQuizSection } from "../../../../../../components/groups/quiz/StartQuizSection";
 import { GenerationProgressModal } from "../../../../../../components/groups/quiz/GenerationProgressModal";
+import { QuestionTypeSelector, type QuestionType } from "../../../../../../components/groups/quiz/QuestionTypeSelector";
 import type { QuestionPreset } from "../../../../../../components/questions/PresetSelector";
 
 interface GroupPresetSelectionViewProps {
@@ -82,6 +83,7 @@ export function GroupPresetSelectionView({
   const [showConfirmationDialog, setShowConfirmationDialog] = useState(false);
   const [showProgressModal, setShowProgressModal] = useState(false);
   const [generatingPresetId, setGeneratingPresetId] = useState<string | null>(null);
+  const [selectedQuestionType, setSelectedQuestionType] = useState<QuestionType>('multiple-choice');
   const [pendingPreset, setPendingPreset] = useState<{
     id: string;
     name: string;
@@ -91,6 +93,19 @@ export function GroupPresetSelectionView({
   // Load custom prompts
   const { customPresets, isLoading: customPromptsLoading } =
     useCustomPromptPresets();
+
+  // Filter presets based on selected question type
+  const filteredPresets = customPresets.filter(preset => {
+    if (selectedQuestionType === 'multiple-choice') {
+      // Multiple choice presets are the default ones that don't contain fill-in-the-blank keywords
+      return !preset.name.toLowerCase().includes('fill-in-the-blank') &&
+             !preset.name.toLowerCase().includes('dictation');
+    } else {
+      // Completion presets contain fill-in-the-blank or dictation keywords
+      return preset.name.toLowerCase().includes('fill-in-the-blank') ||
+             preset.name.toLowerCase().includes('dictation');
+    }
+  });
 
   // Custom generation levels
   const customLevels = [
@@ -264,6 +279,17 @@ export function GroupPresetSelectionView({
         currentPreset={currentPreset}
       />
 
+      {/* Question Type Selector */}
+      <QuestionTypeSelector
+        selectedType={selectedQuestionType}
+        onTypeChange={(type) => {
+          setSelectedQuestionType(type);
+          // Reset selected preset when changing question type
+          setSelectedPreset(null);
+        }}
+        disabled={isGenerating}
+      />
+
       {/* Presets Grid */}
       {customPromptsLoading ? (
         <div className="flex justify-center py-8">
@@ -272,16 +298,16 @@ export function GroupPresetSelectionView({
       ) : (
         <>
           {/* Custom Presets Only */}
-          {customPresets.length > 0 ? (
+          {filteredPresets.length > 0 ? (
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                Question Generation Templates
+                {selectedQuestionType === 'multiple-choice' ? 'Multiple Choice' : 'Fill-in-the-Blank'} Templates
                 <span className="ml-2 text-sm text-green-600 bg-green-100 px-2 py-1 rounded-full">
                   Custom Prompts
                 </span>
               </h3>
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {customPresets.map((preset) => (
+                {filteredPresets.map((preset) => (
                   <PresetCard
                     key={preset.id}
                     preset={preset}
@@ -298,9 +324,13 @@ export function GroupPresetSelectionView({
           ) : (
             <div className="flex justify-center py-12">
               <div className="text-center text-gray-500">
-                <p className="text-lg mb-2">No custom prompts available</p>
+                <p className="text-lg mb-2">
+                  No {selectedQuestionType === 'multiple-choice' ? 'multiple choice' : 'fill-in-the-blank'} prompts available
+                </p>
                 <p className="text-sm">
-                  Custom question generation templates will appear here
+                  {selectedQuestionType === 'multiple-choice'
+                    ? 'Multiple choice question templates will appear here'
+                    : 'Fill-in-the-blank question templates will appear here'}
                 </p>
               </div>
             </div>

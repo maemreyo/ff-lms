@@ -27,6 +27,7 @@ export interface QuestionComponentProps<T extends GeneratedQuestion = GeneratedQ
   showResults?: boolean
   evaluationResult?: QuestionEvaluationResult
   enableWordSelection?: boolean
+  videoUrl?: string
 }
 
 /**

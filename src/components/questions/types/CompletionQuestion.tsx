@@ -28,7 +28,8 @@ export function CompletionQuestion({
   onAnswerSelect,
   showResults = false,
   evaluationResult,
-  enableWordSelection = true
+  enableWordSelection = true,
+  videoUrl
 }: QuestionComponentProps<CompletionQuestionType>) {
   const [answers, setAnswers] = useState<Record<string, string>>({})
   const questionRef = useRef<HTMLDivElement>(null)
@@ -83,111 +84,53 @@ export function CompletionQuestion({
     onAnswerSelect(questionIndex, response)
   }
 
-  // Render template with interactive blanks
-  const renderTemplateWithBlanks = () => {
-    const template = question.content.template
+  // Render simple input fields for each blank
+  const renderSimpleInputs = () => {
     const blanks = question.content.blanks.sort((a, b) => a.position - b.position)
 
-    const parts: React.ReactNode[] = []
-    let lastIndex = 0
-
-    blanks.forEach((blank, index) => {
-      // Add text before this blank
-      if (blank.position > lastIndex) {
-        const textBefore = template.substring(lastIndex, blank.position)
-        parts.push(
-          <span key={`text-${index}`} className="text-gray-800">
-            {textBefore}
-          </span>
-        )
-      }
-
-      // Add the blank input
+    return blanks.map((blank, index) => {
       const isCorrect = showResults && evaluationResult?.partialCredit?.details?.includes(`blank-${blank.id}-correct`)
       const isIncorrect = showResults && evaluationResult?.partialCredit?.details?.includes(`blank-${blank.id}-incorrect`)
 
-      parts.push(
-        <span key={`blank-${blank.id}`} className="inline-block mx-1">
+      return (
+        <div key={blank.id} className="mb-4">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Blank {index + 1}
+          </label>
           <Input
             value={answers[blank.id] || ''}
             onChange={(e) => updateAnswer(blank.id, e.target.value)}
             disabled={showResults}
-            placeholder={blank.hint || '___'}
+            placeholder="Type your answer..."
             className={`
-              inline-block w-auto min-w-20 h-8 px-2 py-1 text-center border-2 rounded
+              w-full max-w-md h-10 px-3 py-2 border-2 rounded-md
               ${isCorrect ? 'border-green-500 bg-green-50 text-green-800' : ''}
               ${isIncorrect ? 'border-red-500 bg-red-50 text-red-800' : ''}
-              ${!showResults ? 'border-blue-300 focus:border-blue-500' : ''}
+              ${!showResults ? 'border-gray-300 focus:border-blue-500' : ''}
             `}
-            style={{
-              width: `${Math.max(3, (answers[blank.id] || blank.hint || '___').length + 1)}ch`
-            }}
           />
           {showResults && isCorrect && (
-            <span className="ml-1 text-green-600">✓</span>
+            <span className="ml-2 text-green-600 font-medium">✓ Correct</span>
           )}
           {showResults && isIncorrect && (
-            <span className="ml-1 text-red-600">✗</span>
+            <div className="mt-1">
+              <span className="text-red-600 font-medium">✗ Incorrect</span>
+              <span className="text-sm text-gray-600 ml-2">
+                {/* Expected: {blank.acceptedAnswers[0]} */}
+              </span>
+            </div>
           )}
-        </span>
+        </div>
       )
-
-      // Find the end of the blank placeholder in template
-      const blankPlaceholder = '___'
-      const blankStart = template.indexOf(blankPlaceholder, blank.position)
-      lastIndex = blankStart + blankPlaceholder.length
     })
-
-    // Add remaining text after last blank
-    if (lastIndex < template.length) {
-      parts.push(
-        <span key="text-end" className="text-gray-800">
-          {template.substring(lastIndex)}
-        </span>
-      )
-    }
-
-    return parts
   }
 
   // Calculate completion status
   const totalBlanks = question.content.blanks.length
-  const filledBlanks = Object.values(answers).filter(answer => answer.trim().length > 0).length
-  const progressPercentage = totalBlanks > 0 ? (filledBlanks / totalBlanks) * 100 : 0
 
   return (
     <Card className="border-2 border-purple-100 shadow-xl shadow-purple-500/5">
       <CardContent className="p-8">
-        {/* Question Header */}
-        <div className="mb-6 flex items-start justify-between">
-          <div className="flex items-center space-x-3">
-            <Badge className="bg-gradient-to-r from-purple-500 to-indigo-600 text-white px-4 py-2 text-sm font-bold">
-              Set {currentSetIndex + 1} of {totalSets} • Question {questionIndex + 1} of{' '}
-              {totalQuestions}
-            </Badge>
-            <Badge variant="outline" className="text-purple-700 border-purple-300">
-              Fill in the Blanks
-            </Badge>
-          </div>
-          {!showResults && (
-            <div className="text-sm text-gray-600">
-              {filledBlanks}/{totalBlanks} completed
-            </div>
-          )}
-        </div>
-
-        {/* Progress Bar */}
-        {!showResults && (
-          <div className="mb-6">
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div
-                className="bg-gradient-to-r from-purple-500 to-indigo-600 h-2 rounded-full transition-all duration-300"
-                style={{ width: `${progressPercentage}%` }}
-              />
-            </div>
-          </div>
-        )}
-
         {/* Question Text */}
         <div className="mb-6">
           <h3 className="text-xl font-bold leading-relaxed text-gray-800 mb-4">
@@ -208,7 +151,7 @@ export function CompletionQuestion({
             ${enableWordSelection ? 'select-text cursor-text' : ''}
           `}
         >
-          {renderTemplateWithBlanks()}
+          {renderSimpleInputs()}
         </div>
 
         {/* Hints Section */}
@@ -218,9 +161,9 @@ export function CompletionQuestion({
             <div className="space-y-1">
               {question.content.blanks
                 .filter(blank => blank.hint)
-                .map(blank => (
+                .map((blank, index) => (
                   <div key={blank.id} className="text-sm text-blue-700">
-                    • {blank.hint}
+                    <span className="font-medium">Blank {index + 1}:</span> {blank.hint}
                   </div>
                 ))
               }
@@ -246,9 +189,17 @@ export function CompletionQuestion({
                   Score: {Math.round(evaluationResult.score * 100)}%
                   ({evaluationResult.partialCredit?.earned || 0}/{evaluationResult.partialCredit?.possible || totalBlanks} correct)
                 </h4>
-                <p className="text-gray-700 leading-relaxed mb-3">
-                  {question.explanation}
-                </p>
+                <div className="text-gray-700 leading-relaxed mb-3">
+                  {videoUrl ? (
+                    <ExplanationWithTimeframes
+                      explanation={question.explanation}
+                      videoUrl={videoUrl}
+                      className="text-gray-700"
+                    />
+                  ) : (
+                    <p>{question.explanation}</p>
+                  )}
+                </div>
 
                 {/* Show correct answers for incorrect blanks */}
                 {evaluationResult.partialCredit?.details && (
@@ -298,8 +249,8 @@ export function CompletionPreview({
     let result = template
     blanks.forEach(blank => {
       const placeholder = '___'
-      const replacement = `[${blank.acceptedAnswers[0]}]`
-      result = result.replace(placeholder, replacement)
+      // const replacement = `[${blank.acceptedAnswers[0]}]`
+      // result = result.replace(placeholder, replacement)
     })
 
     return result

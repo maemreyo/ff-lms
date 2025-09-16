@@ -7,6 +7,7 @@ export type QuestionType =
   | 'multiple-choice'
   | 'matching'
   | 'completion'
+  | 'fill-blank' // Alias for completion for database compatibility
   | 'short-answer'
   | 'diagram-labelling'
 
@@ -66,7 +67,7 @@ export interface MatchingQuestion extends BaseGeneratedQuestion {
  * Completion Question - Fill in blanks in text
  */
 export interface CompletionQuestion extends BaseGeneratedQuestion {
-  type: 'completion'
+  type: 'completion' | 'fill-blank'
   content: {
     template: string // "The weather was ___ and temperature reached ___ degrees"
     blanks: Array<{
@@ -148,7 +149,7 @@ export interface MatchingResponse extends BaseQuestionResponse {
 }
 
 export interface CompletionResponse extends BaseQuestionResponse {
-  questionType: 'completion'
+  questionType: 'completion' | 'fill-blank'
   response: {
     answers: Array<{
       blankId: string

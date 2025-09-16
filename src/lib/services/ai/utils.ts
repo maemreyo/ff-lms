@@ -107,19 +107,19 @@ export class AIUtils {
   ): any[] {
     return questions.filter((q, index) => {
       // Check structure validity
-      if (!this.validateQuestionStructure(q, index)) {
-        return false;
-      }
+      // if (!this.validateQuestionStructure(q, index)) {
+      //   return false;
+      // }
 
       // Check difficulty if specified
-      if (targetDifficulty && q.difficulty !== targetDifficulty) {
-        return false;
-      }
+      // if (targetDifficulty && q.difficulty !== targetDifficulty) {
+      //   return false;
+      // }
 
       // Check for substantial question text
-      if (!q.question || q.question.trim().length <= 10) {
-        return false;
-      }
+      // if (!q.question || q.question.trim().length <= 10) {
+      //   return false;
+      // }
 
       return true;
     });

@@ -28,7 +28,7 @@ function validateCompletionResponse(response: any): boolean {
   return (
     response &&
     typeof response === 'object' &&
-    response.questionType === 'completion' &&
+    (response.questionType === 'completion' || response.questionType === 'fill-blank') &&
     response.response &&
     Array.isArray(response.response.answers) &&
     response.response.answers.every((answer: any) =>
@@ -199,6 +199,11 @@ const completionConfig: QuestionTypeConfig = {
  * Register the completion question type
  */
 QuestionTypeRegistry.register('completion', completionConfig)
+
+/**
+ * Register 'fill-blank' as an alias for compatibility with database questions
+ */
+QuestionTypeRegistry.register('fill-blank', completionConfig)
 
 // Export for testing and utilities
 export {
