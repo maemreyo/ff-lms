@@ -12,6 +12,7 @@ export interface GroupSession {
   share_token: string // Add share_token property
   created_by: string
   questions_data?: any
+  loop_data?: any // Add loop_data property to match database schema
   created_at: string
   started_at?: string
   ended_at?: string

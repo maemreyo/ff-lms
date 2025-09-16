@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Brain,
@@ -22,6 +22,7 @@ import { PresetSelectionHeader } from "../../../../../../components/groups/quiz/
 import { PresetCard } from "../../../../../../components/groups/quiz/PresetCard";
 import { CustomGenerationSection } from "../../../../../../components/groups/quiz/CustomGenerationSection";
 import { StartQuizSection } from "../../../../../../components/groups/quiz/StartQuizSection";
+import { GenerationProgressModal } from "../../../../../../components/groups/quiz/GenerationProgressModal";
 import type { QuestionPreset } from "../../../../../../components/questions/PresetSelector";
 
 interface GroupPresetSelectionViewProps {
@@ -79,6 +80,8 @@ export function GroupPresetSelectionView({
   const router = useRouter();
   const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
   const [showConfirmationDialog, setShowConfirmationDialog] = useState(false);
+  const [showProgressModal, setShowProgressModal] = useState(false);
+  const [generatingPresetId, setGeneratingPresetId] = useState<string | null>(null);
   const [pendingPreset, setPendingPreset] = useState<{
     id: string;
     name: string;
@@ -123,7 +126,6 @@ export function GroupPresetSelectionView({
     },
   ];
 
-  // Combine standard and custom presets
   const totalGenerated = Object.values(generatedCounts).reduce(
     (sum, count) => sum + count,
     0
@@ -133,6 +135,14 @@ export function GroupPresetSelectionView({
     generatingState.medium ||
     generatingState.hard ||
     generatingState.all;
+
+  // Show progress modal when generating
+  React.useEffect(() => {
+    if (isGenerating && generatingPresetId) {
+      setShowProgressModal(true);
+    }
+    // Remove auto-close logic - let user close manually when ready
+  }, [isGenerating, generatingPresetId]);
 
   const handleGoBack = () => {
     router.push(`/groups/${groupId}`);
@@ -161,6 +171,7 @@ export function GroupPresetSelectionView({
 
     try {
       setSelectedPreset(preset.id);
+      setGeneratingPresetId(preset.id);
 
       // Pass additional info for custom prompts
       const presetInfo = {
@@ -180,15 +191,17 @@ export function GroupPresetSelectionView({
       console.error("Failed to generate from preset:", error);
       toast.error("Failed to generate questions from preset");
       setSelectedPreset(null);
+      setGeneratingPresetId(null);
+      setShowProgressModal(false);
     }
   };
 
   const handleConfirmPresetReplacement = async () => {
     if (pendingPreset) {
+      setShowConfirmationDialog(false); // Close confirmation dialog immediately
       await generateFromPreset(pendingPreset);
       setPendingPreset(null);
     }
-    setShowConfirmationDialog(false);
   };
 
   const handleCancelPresetReplacement = () => {
@@ -212,6 +225,14 @@ export function GroupPresetSelectionView({
     }
   };
 
+  const getCurrentPresetName = () => {
+    if (generatingPresetId) {
+      const preset = customPresets.find(p => p.id === generatingPresetId);
+      return preset?.name || 'Unknown Preset';
+    }
+    return undefined;
+  };
+
   return (
     <div className="space-y-8">
       {/* Confirmation Dialog */}
@@ -224,6 +245,18 @@ export function GroupPresetSelectionView({
           onCancel={handleCancelPresetReplacement}
         />
       )}
+
+      {/* Generation Progress Modal */}
+      <GenerationProgressModal
+        isOpen={showProgressModal}
+        generatingState={generatingState}
+        generatedCounts={generatedCounts}
+        presetName={getCurrentPresetName()}
+        onClose={() => {
+          setShowProgressModal(false);
+          setGeneratingPresetId(null);
+        }}
+      />
 
       {/* Header */}
       <PresetSelectionHeader
@@ -256,7 +289,7 @@ export function GroupPresetSelectionView({
                       selectedPreset === preset.id ||
                       currentPreset?.id === preset.id
                     }
-                    isGenerating={isGenerating}
+                    isGenerating={generatingPresetId === preset.id}
                     onClick={() => handlePresetSelection(preset)}
                   />
                 ))}

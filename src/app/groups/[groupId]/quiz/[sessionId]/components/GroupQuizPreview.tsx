@@ -15,6 +15,7 @@ import {
 import { Badge } from '../../../../../../components/ui/badge'
 import { Button } from '../../../../../../components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../../../../components/ui/tabs'
+import { ExplanationWithTimeframes } from '../../../../../../components/groups/quiz/ExplanationWithTimeframes'
 
 interface Question {
   id: string
@@ -37,6 +38,7 @@ interface GroupQuizPreviewProps {
   onGoBack: () => void
   canShowAnswers?: boolean // For admin/owner
   sessionTitle?: string
+  videoUrl?: string // Add videoUrl prop for timeframe links
   quizSettings?: {
     shuffleQuestions?: boolean
     shuffleAnswers?: boolean
@@ -66,6 +68,7 @@ export function GroupQuizPreview({
   onGoBack,
   canShowAnswers = false,
   sessionTitle,
+  videoUrl,
   quizSettings = {}
 }: GroupQuizPreviewProps) {
   const [showAnswers, setShowAnswers] = useState(false)
@@ -266,7 +269,13 @@ export function GroupQuizPreview({
                         {showAnswers && question.explanation && (
                           <div className="mt-4 rounded-md border border-blue-200 bg-blue-50 p-3">
                             <p className="text-sm font-semibold text-blue-800">Explanation</p>
-                            <p className="mt-1 text-sm text-blue-700">{question.explanation}</p>
+                            <div className="mt-1">
+                              <ExplanationWithTimeframes
+                                explanation={question.explanation}
+                                videoUrl={videoUrl}
+                                className="text-sm text-blue-700"
+                              />
+                            </div>
                           </div>
                         )}
                       </div>

@@ -231,6 +231,7 @@ export default function PreviewWithTokensPage({
           sessionTitle={
             session?.quiz_title || session?.title || "Group Quiz Session"
           }
+          videoUrl={session?.loop_data?.videoUrl}
           quizSettings={groupSettings}
         />
       </div>

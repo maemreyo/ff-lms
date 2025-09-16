@@ -1,0 +1,11 @@
+1. Modal bị hiển thị kiểu: success xong hết ngay khi được bật lên, sau đó mới bắt đầu waiting rồi 1 lúc sau mới success. Cần kiểm tra lại initial state
+2. Phần explaination trong này `src/app/groups/[groupId]/quiz/[sessionId]/components/GroupQuizPreview.tsx`:
+```
+                        {showAnswers && question.explanation && (
+                          <div className="mt-4 rounded-md border border-blue-200 bg-blue-50 p-3">
+                            <p className="text-sm font-semibold text-blue-800">Explanation</p>
+                            <p className="mt-1 text-sm text-blue-700">{question.explanation}</p>
+                          </div>
+                        )}
+```
+đang chưa có logic để extract các timeframe ra để nhúng link tới đoạn video đó. Kiểm tra src/components/groups/quiz/results/QuestionReviewList.tsx để có thể làm tương tự. Có thể tách thành reusable components để sử dụng.
