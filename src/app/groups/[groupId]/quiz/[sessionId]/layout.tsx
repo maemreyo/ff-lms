@@ -126,14 +126,14 @@ export default function QuizLayout({ children, params }: QuizLayoutProps) {
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
         <div className="flex h-screen">
           {/* Left Sidebar - Progress Tracking or Participants */}
-          {appState === 'quiz-active' ? (
+          {/* {appState === 'quiz-active' ? (
             <CompactProgressSidebar
               participants={progressParticipants}
               groupStats={groupStats}
               sessionStartTime={session?.started_at}
               currentUserId={user?.id}
             />
-          ) : (
+          ) : ( */}
             <FallbackParticipantsSidebar
               participants={participants}
               onlineParticipants={onlineParticipants}
@@ -141,7 +141,7 @@ export default function QuizLayout({ children, params }: QuizLayoutProps) {
               onRefresh={refreshParticipants}
               isRefreshing={participantsRefreshing}
             />
-          )}
+          {/* )} */}
 
           {/* Main Content */}
           <div className="flex flex-1 flex-col overflow-hidden">
