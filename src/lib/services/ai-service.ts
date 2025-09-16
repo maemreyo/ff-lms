@@ -889,43 +889,6 @@ export class AIService {
     return { options: shuffled };
   }
 
-  // Specialized AI functions for other use cases
-  async summarizeText(text: string, maxLength: number = 200): Promise<string> {
-    const messages: ChatMessage[] = [
-      {
-        role: "system",
-        content: `Summarize the given text in approximately ${maxLength} characters or less. Be concise but capture the key points.`,
-      },
-      {
-        role: "user",
-        content: text,
-      },
-    ];
-
-    const response = await this.chat(messages, {
-      maxTokens: Math.ceil(maxLength / 3),
-    });
-    return response.content;
-  }
-
-  async translateText(text: string, targetLanguage: string): Promise<string> {
-    const messages: ChatMessage[] = [
-      {
-        role: "system",
-        content: `Translate the given text to ${targetLanguage}. Only return the translation, no additional text.`,
-      },
-      {
-        role: "user",
-        content: text,
-      },
-    ];
-
-    const response = await this.chat(messages, {
-      maxTokens: Math.ceil(text.length * 1.5),
-    });
-    return response.content;
-  }
-
   // Check AI service capabilities
   async getCapabilities(): Promise<AICapability[]> {
     const baseCapabilities: AICapability[] = [
