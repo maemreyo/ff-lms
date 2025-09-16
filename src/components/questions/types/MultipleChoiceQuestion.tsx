@@ -7,6 +7,8 @@ import { useEffect, useRef } from 'react'
 import { useWordSelection } from '@/lib/hooks/use-word-selection'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Check } from 'lucide-react'
+import { ExplanationWithTimeframes } from '@/components/groups/quiz/ExplanationWithTimeframes'
 import { QuestionComponentProps } from '@/lib/registry/QuestionTypeRegistry'
 import {
   MultipleChoiceQuestion as MultipleChoiceQuestionType,
@@ -194,38 +196,71 @@ export function MultipleChoiceQuestion({
 /**
  * Preview component for multiple choice questions
  */
-export function MultipleChoicePreview({ question }: { question: MultipleChoiceQuestionType }) {
+export function MultipleChoicePreview({
+  question,
+  showAnswers = true,
+  videoUrl
+}: {
+  question: MultipleChoiceQuestionType
+  showAnswers?: boolean
+  videoUrl?: string
+}) {
   return (
-    <div className="p-4 border border-gray-200 rounded-lg">
-      <h4 className="font-semibold mb-2">{question.question}</h4>
+    <div>
+      <p className="mb-4 text-base text-gray-800">{question.question}</p>
+
       <div className="space-y-2">
         {question.content.options.map((option, index) => {
-          const letter = ['A', 'B', 'C', 'D'][index]
-          const isCorrect = letter === question.content.correctAnswer
+          const optionLetter = String.fromCharCode(65 + index) // A, B, C, D
+          const isCorrect = showAnswers && optionLetter === question.content.correctAnswer
 
           return (
             <div
-              key={letter}
-              className={`flex items-center space-x-2 p-2 rounded ${
-                isCorrect ? 'bg-green-50 border border-green-200' : 'bg-gray-50'
+              key={index}
+              className={`flex items-center justify-between rounded-md border p-3 transition-colors ${
+                isCorrect
+                  ? 'border-green-300 bg-green-50/70'
+                  : 'border-gray-200 bg-white'
               }`}
             >
-              <span className={`font-bold ${isCorrect ? 'text-green-700' : 'text-gray-600'}`}>
-                {letter}.
-              </span>
-              <span className={isCorrect ? 'text-green-700' : 'text-gray-700'}>
-                {option}
-              </span>
-              {isCorrect && <span className="text-green-600 text-sm">✓</span>}
+              <div className="flex items-start gap-3">
+                <span
+                  className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-sm font-semibold ${
+                    isCorrect
+                      ? 'border-green-500 bg-green-100 text-green-700'
+                      : 'border-gray-300 text-gray-600'
+                  }`}
+                >
+                  {optionLetter}
+                </span>
+                <span
+                  className={`flex-1 text-sm ${
+                    isCorrect ? 'font-semibold text-green-900' : 'text-gray-700'
+                  }`}
+                >
+                  {option}
+                </span>
+              </div>
+              {isCorrect && <Check className="h-5 w-5 text-green-600" />}
             </div>
           )
         })}
       </div>
-      {question.explanation && (
-        <div className="mt-3 p-3 bg-blue-50 rounded border border-blue-200">
-          <p className="text-sm text-blue-800">
-            <strong>Explanation:</strong> {question.explanation}
-          </p>
+
+      {showAnswers && question.explanation && (
+        <div className="mt-4 rounded-md border border-blue-200 bg-blue-50 p-3">
+          <p className="text-sm font-semibold text-blue-800">Explanation</p>
+          <div className="mt-1">
+            {videoUrl ? (
+              <ExplanationWithTimeframes
+                explanation={question.explanation}
+                videoUrl={videoUrl}
+                className="text-sm text-blue-700"
+              />
+            ) : (
+              <p className="text-sm text-blue-700">{question.explanation}</p>
+            )}
+          </div>
         </div>
       )}
     </div>

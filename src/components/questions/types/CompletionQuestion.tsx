@@ -7,6 +7,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
+import { ExplanationWithTimeframes } from '@/components/groups/quiz/ExplanationWithTimeframes'
 import { QuestionComponentProps } from '@/lib/registry/QuestionTypeRegistry'
 import {
   CompletionQuestion as CompletionQuestionType,
@@ -281,7 +282,15 @@ export function CompletionQuestion({
 /**
  * Preview component for completion questions
  */
-export function CompletionPreview({ question }: { question: CompletionQuestionType }) {
+export function CompletionPreview({
+  question,
+  showAnswers = true,
+  videoUrl
+}: {
+  question: CompletionQuestionType
+  showAnswers?: boolean
+  videoUrl?: string
+}) {
   const renderPreviewTemplate = () => {
     const template = question.content.template
     const blanks = question.content.blanks.sort((a, b) => a.position - b.position)
@@ -297,34 +306,51 @@ export function CompletionPreview({ question }: { question: CompletionQuestionTy
   }
 
   return (
-    <div className="p-4 border border-purple-200 rounded-lg bg-purple-50">
-      <h4 className="font-semibold mb-2 text-purple-800">{question.question}</h4>
-      <div className="mb-3 p-3 bg-white rounded border">
-        <p className="text-gray-800 leading-relaxed">
+    <div>
+      <p className="mb-4 text-base text-gray-800">{question.question}</p>
+
+      <div className="mb-4 p-4 bg-gray-50 rounded-lg border">
+        <p className="text-gray-800 leading-relaxed font-mono">
           {renderPreviewTemplate()}
         </p>
       </div>
 
-      <div className="space-y-2">
-        <h5 className="font-medium text-purple-700 text-sm">Expected Answers:</h5>
-        {question.content.blanks.map((blank, index) => (
-          <div key={blank.id} className="text-sm">
-            <span className="text-purple-600">Blank {index + 1}:</span>
-            <span className="font-medium text-purple-800 ml-2">
-              {blank.acceptedAnswers.join(', ')}
-            </span>
-            {blank.caseSensitive && (
-              <span className="text-xs text-purple-500 ml-2">(case sensitive)</span>
+      {showAnswers && (
+        <div className="space-y-2">
+          <h5 className="font-medium text-gray-700 text-sm">Expected Answers:</h5>
+          {question.content.blanks.map((blank, index) => (
+            <div key={blank.id} className="text-sm p-2 bg-green-50 rounded border border-green-200">
+              <span className="text-green-600 font-medium">Blank {index + 1}:</span>
+              <span className="font-semibold text-green-800 ml-2">
+                {blank.acceptedAnswers.join(', ')}
+              </span>
+              {blank.caseSensitive && (
+                <span className="text-xs text-green-600 ml-2">(case sensitive)</span>
+              )}
+              {blank.hint && (
+                <div className="text-xs text-green-600 mt-1">
+                  Hint: {blank.hint}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {showAnswers && question.explanation && (
+        <div className="mt-4 rounded-md border border-blue-200 bg-blue-50 p-3">
+          <p className="text-sm font-semibold text-blue-800">Explanation</p>
+          <div className="mt-1">
+            {videoUrl ? (
+              <ExplanationWithTimeframes
+                explanation={question.explanation}
+                videoUrl={videoUrl}
+                className="text-sm text-blue-700"
+              />
+            ) : (
+              <p className="text-sm text-blue-700">{question.explanation}</p>
             )}
           </div>
-        ))}
-      </div>
-
-      {question.explanation && (
-        <div className="mt-3 p-3 bg-blue-50 rounded border border-blue-200">
-          <p className="text-sm text-blue-800">
-            <strong>Explanation:</strong> {question.explanation}
-          </p>
         </div>
       )}
     </div>

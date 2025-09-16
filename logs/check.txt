@@ -1,0 +1,72 @@
+Attempting to broadcast preparation update: {step: 'preset-selection', data: {…}, canBroadcast: true, hasChannel: true, userId: '39abb7b6-93ca-4f4c-b07b-1087f6224cb5'}
+Broadcasting payload: {type: 'preparation_update', step: 'preset-selection', selectedPreset: {…}, updated_by: '39abb7b6-93ca-4f4c-b07b-1087f6224cb5', updated_at: '2025-09-16T07:13:20.992Z'}
+🎯 handleGenerateFromPreset called with: {loopData: 'Loop ID: febf3e85-4805-404b-9f98-b110df095430, hasTranscript: true', distribution: {…}, presetInfo: {…}}
+Generating questions for preset: Detail-Focused Listening
+Clearing existing questions from database
+Preparation update broadcasted successfully: preset-selection
+Attempting to broadcast preparation update: {step: 'question-generation', data: {…}, canBroadcast: true, hasChannel: true, userId: '39abb7b6-93ca-4f4c-b07b-1087f6224cb5'}
+Broadcasting payload: {type: 'preparation_update', step: 'question-generation', selectedPreset: {…}, all: true, completed: false, …}
+Preparation update broadcasted successfully: question-generation
+Successfully deleted 0 question set(s) from database
+🔄 [useQuestionGeneration] Invalidated questions cache after deletion
+🔄 Using handleGenerateAllQuestions for sequential generation with deduplication
+🎯 Using customPromptId: 72633520-1d15-4894-b3c9-4521d70c1109 from presetInfo.id: custom-72633520-1d15-4894-b3c9-4521d70c1109
+Generating all questions for loop: febf3e85-4805-404b-9f98-b110df095430 with preset counts using custom prompt: 72633520-1d15-4894-b3c9-4521d70c1109
+🎯 Request includes customPromptId: true
+Successfully generated all questions: (3) [{…}, {…}, {…}]
+🔄 [useQuestionGeneration] Invalidated questions cache for new preset tokens
+useGroupQuiz.ts:385 🎯 [CACHE-POWERED] Loading questions from shareTokens: {hard: '7714b01c-67ec-4c4c-8985-3e4705598399', medium: '092888f2-5491-4254-9122-229c849e8408', easy: '0bf98975-2b8f-4290-be54-2b43118efb1a'}
+useGroupQuiz.ts:385 🎯 [CACHE-POWERED] Loading questions from shareTokens: {hard: '7714b01c-67ec-4c4c-8985-3e4705598399', medium: '092888f2-5491-4254-9122-229c849e8408', easy: '0bf98975-2b8f-4290-be54-2b43118efb1a'}
+Saved current preset to database
+Attempting to broadcast preparation update: {step: 'ready-to-start', data: {…}, canBroadcast: true, hasChannel: true, userId: '39abb7b6-93ca-4f4c-b07b-1087f6224cb5'}
+Broadcasting payload: {type: 'preparation_update', step: 'ready-to-start', questionsReady: true, updated_by: '39abb7b6-93ca-4f4c-b07b-1087f6224cb5', updated_at: '2025-09-16T07:14:06.716Z'}
+Preparation update broadcasted successfully: ready-to-start
+Broadcasting quiz session start... {sessionId: 'bd6656c1-56cd-4a41-abee-ae20e7efd475', userId: '39abb7b6-93ca-4f4c-b07b-1087f6224cb5'}
+Quiz session start broadcasted successfully
+useQuizFlow.ts:22 🔍 [useQuizFlow] Getting shareTokens for navigation...
+useQuizFlow.ts:33 ✅ [useQuizFlow] Using shareTokens from sessionStorage for navigation
+useQuizFlow.ts:81 🔗 [useQuizFlow] Navigating to preview with tokens: eyJoYXJkIjoiNzcxNGIwMWMtNjdlYy00YzRjLTg5ODUtM2U0NzA1NTk4Mzk5IiwibWVkaXVtIjoiMDkyODg4ZjItNTQ5MS00MjU0LTkxMjItMjI5Yzg0OWU4NDA4IiwiZWFzeSI6IjBiZjk4OTc1LTJiOGYtNDI5MC1iZTU0LTJiNDMxMThlZmIxYSJ9
+turbopack-hot-reloader-common.ts:43 [Fast Refresh] rebuilding
+report-hmr-latency.ts:26 [Fast Refresh] done in 129ms
+QuestionTypeRegistry.ts:214 🔧 Initializing Question Type Registry...
+QuestionTypeRegistry.ts:220 ✅ Question Type Registry initialized
+QuestionTypeRegistry.ts:72 ✅ Registered question type: multiple-choice
+QuestionTypeRegistry.ts:72 ✅ Registered question type: completion
+index.ts:28 🚀 Question Types initialized: {registered: Array(2), enabled: Array(2), production: Array(1)}
+useGroupQuiz.ts:385 🎯 [CACHE-POWERED] Loading questions from shareTokens: {hard: '7714b01c-67ec-4c4c-8985-3e4705598399', medium: '092888f2-5491-4254-9122-229c849e8408', easy: '0bf98975-2b8f-4290-be54-2b43118efb1a'}
+use-quiz-auth.ts:88 Quiz Auth: Auth state changed: INITIAL_SESSION
+useExistingResultsCheck.ts:56 👤 User is authenticated, checking for existing results...
+useExistingResultsCheck.ts:70 🔍 No cached results, checking server...
+useExistingResultsCheck.ts:41 🔍 Checking for existing results from hook
+progress-tracking-service.ts:167 Found progress data: null
+useGroupQuiz.ts:612 🚀 [handleStartQuizFromPreview] Setting appState to quiz-active
+turbopack-hot-reloader-common.ts:43 [Fast Refresh] rebuilding
+report-hmr-latency.ts:26 [Fast Refresh] done in 126ms
+Navigated to http://localhost:3838/groups/9f640f92-d11c-463d-b3a6-2df737c912f0/quiz/bd6656c1-56cd-4a41-abee-ae20e7efd475/active/eyJoYXJkIjoiNzcxNGIwMWMtNjdlYy00YzRjLTg5ODUtM2U0NzA1NTk4Mzk5IiwibWVkaXVtIjoiMDkyODg4ZjItNTQ5MS00MjU0LTkxMjItMjI5Yzg0OWU4NDA4IiwiZWFzeSI6IjBiZjk4OTc1LTJiOGYtNDI5MC1iZTU0LTJiNDMxMThlZmIxYSJ9
+react-dom-client.development.js:25630 Download the React DevTools for a better development experience: https://react.dev/link/react-devtools
+use-quiz-auth.ts:88 Quiz Auth: Auth state changed: INITIAL_SESSION
+AuthContext.tsx:85 Auth Context: Auth state changed: INITIAL_SESSION
+useRealtimeSession.ts:60 New users joined: [{…}]
+QuestionTypeRegistry.ts:214 🔧 Initializing Question Type Registry...
+QuestionTypeRegistry.ts:220 ✅ Question Type Registry initialized
+QuestionTypeRegistry.ts:72 ✅ Registered question type: multiple-choice
+QuestionTypeRegistry.ts:72 ✅ Registered question type: completion
+index.ts:28 🚀 Question Types initialized: {registered: Array(2), enabled: Array(2), production: Array(1)}
+useGroupQuiz.ts:385 🎯 [CACHE-POWERED] Loading questions from shareTokens: {hard: '7714b01c-67ec-4c4c-8985-3e4705598399', medium: '092888f2-5491-4254-9122-229c849e8408', easy: '0bf98975-2b8f-4290-be54-2b43118efb1a'}
+useGroupQuiz.ts:385 🎯 [CACHE-POWERED] Loading questions from shareTokens: {hard: '7714b01c-67ec-4c4c-8985-3e4705598399', medium: '092888f2-5491-4254-9122-229c849e8408', easy: '0bf98975-2b8f-4290-be54-2b43118efb1a'}
+use-quiz-auth.ts:88 Quiz Auth: Auth state changed: INITIAL_SESSION
+useGroupQuizWithProgress.ts:229 Progress updated for set completion: {currentQuestion: 4, currentSet: 1, totalAnswered: 4, correctAnswers: 1, timeSpent: 0, …}
+useGroupQuiz.ts:231 Set submitted successfully
+useGroupQuizWithProgress.ts:229 Progress updated for set completion: {currentQuestion: 7, currentSet: 2, totalAnswered: 7, correctAnswers: 2, timeSpent: 0, …}
+useGroupQuiz.ts:231 Set submitted successfully
+useGroupQuizWithProgress.ts:229 Progress updated for set completion: {currentQuestion: 11, currentSet: 3, totalAnswered: 11, correctAnswers: 4, timeSpent: 0, …}
+useGroupQuiz.ts:231 Set submitted successfully
+useGroupQuiz.ts:777 Final results submitted successfully to group leaderboard
+useGroupQuiz.ts:788 Final results with videoUrl: {sessionId: 'group_bd6656c1-56cd-4a41-abee-ae20e7efd475_1758006912625', score: 36, totalQuestions: 11, correctAnswers: 4, results: Array(11), …}
+useGroupQuizWithProgress.ts:258 Marking quiz as completed...
+useGroupQuizWithProgress.ts:269 Final progress update: {currentQuestion: 11, currentSet: 3, totalAnswered: 11, correctAnswers: 4, timeSpent: 0, …}
+page.tsx:99 🎯 Quiz completed, navigating to results page
+useGroupQuiz.ts:385 🎯 [CACHE-POWERED] Loading questions from shareTokens: {hard: '7714b01c-67ec-4c4c-8985-3e4705598399', medium: '092888f2-5491-4254-9122-229c849e8408', easy: '0bf98975-2b8f-4290-be54-2b43118efb1a'}
+useGroupQuizWithProgress.ts:273 Successfully marked quiz as completed!
+useRealtimeSession.ts:60 New users joined: [{…}]
+use-quiz-auth.ts:88 Quiz Auth: Auth state changed: INITIAL_SESSION

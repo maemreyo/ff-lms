@@ -11,6 +11,10 @@ import {
   TooltipTrigger
 } from '../../../../../../components/ui/tooltip'
 import { QuestionNavigationBar } from './QuestionNavigationBar'
+import { QuestionFactory } from '../../../../../../components/questions/QuestionFactory'
+import { autoMigrateQuestion } from '../../../../../../lib/utils/question-migration'
+import { QuestionResponse } from '../../../../../../lib/types/question-types'
+import '../../../../../../lib/registry' // Initialize question type registry
 
 interface GroupQuizActiveViewProps {
   currentQuestion: {
@@ -18,7 +22,7 @@ interface GroupQuizActiveViewProps {
     questionIndex: number
     groupData: any
   } | null
-  responses: Array<{ questionIndex: number; answer: string }>
+  responses: Array<{ questionIndex: number; answer: string }> | QuestionResponse[]
   onAnswerSelect: (questionIndex: number, answer: string) => void
   onNextQuestion: () => void
   onSubmitSet: () => void
@@ -70,7 +74,7 @@ export function GroupQuizActiveView({
   onNavigateNext,
   totalQuestionsInCurrentSet = 0
 }: GroupQuizActiveViewProps) {
-  const [selectedAnswer, setSelectedAnswer] = useState<string>('')
+  // selectedAnswer state is now managed by QuestionFactory
   const [setSubmitted, setSetSubmitted] = useState(false)
   const [timeRemaining, setTimeRemaining] = useState<number | null>(
     timeLimit ? timeLimit * 60 : null
@@ -137,17 +141,7 @@ export function GroupQuizActiveView({
     }
   }, [timeRemaining, timerStarted, setSubmitted, handleNext])
 
-  // Reset selectedAnswer when question or set changes - IMPORTANT FIX
-  useEffect(() => {
-    const currentResponse = responses.find(r => r.questionIndex === currentQuestion?.questionIndex)
-    if (currentResponse) {
-      // If there's already a response for this question, show it
-      setSelectedAnswer(currentResponse.answer)
-    } else {
-      // No response yet - clear selection
-      setSelectedAnswer('')
-    }
-  }, [currentQuestion?.questionIndex, currentSetIndex, responses])
+  // Response management is now handled by QuestionFactory
 
   // Cleanup timers on unmount
   useEffect(() => {
@@ -173,10 +167,7 @@ export function GroupQuizActiveView({
     return 'text-red-600' // ≤ 1 minute
   }
 
-  const handleAnswerClick = (optionLetter: string) => {
-    setSelectedAnswer(optionLetter)
-    onAnswerSelect(currentQuestion?.questionIndex || 0, optionLetter)
-  }
+  // Answer handling is now managed by QuestionFactory
 
   const handleSkip = () => {
     // Skip without selecting an answer - move to next question
@@ -315,7 +306,7 @@ export function GroupQuizActiveView({
     response =>
       response.questionIndex >= currentSetStartIndex &&
       response.questionIndex <= currentSetEndIndex &&
-      response.answer
+      ('answer' in response ? response.answer : response.response)
   ).length
 
   return (
@@ -397,11 +388,26 @@ export function GroupQuizActiveView({
                   response.questionIndex <= currentSetEndIndex
                 )
               })
-              .map(response => ({
-                ...response,
-                // Convert global questionIndex to local index within current set
-                questionIndex: response.questionIndex - (questionIndex - currentQuestionIndex)
-              }))
+              .map(response => {
+                // Convert legacy response format if needed
+                const convertedResponse = 'answer' in response ? {
+                  questionIndex: response.questionIndex,
+                  questionType: 'multiple-choice' as const,
+                  timestamp: new Date(),
+                  response: { selectedOption: response.answer as 'A' | 'B' | 'C' | 'D' }
+                } : response as QuestionResponse
+
+                return {
+                  // Convert global questionIndex to local index within current set
+                  questionIndex: response.questionIndex - (questionIndex - currentQuestionIndex),
+                  // Convert to legacy format for QuestionNavigationBar
+                  answer: 'answer' in response ? response.answer : (
+                    convertedResponse.questionType === 'multiple-choice'
+                      ? convertedResponse.response.selectedOption
+                      : JSON.stringify(convertedResponse.response)
+                  )
+                }
+              })
           }
           onNavigateToQuestion={onNavigateToQuestion}
           onPrevious={onNavigatePrevious}
@@ -415,52 +421,36 @@ export function GroupQuizActiveView({
       <Card className="bg-white shadow-lg">
         <CardContent className="p-8">
           <div className="space-y-6">
-            {/* Question */}
-            <div>
-              <h2 className="mb-6 text-xl font-semibold leading-relaxed text-gray-800">
-                {question?.question}
-              </h2>
-            </div>
-
-            {/* Answer Options */}
-            <div className="space-y-3">
-              {question?.options?.map((option: any, index: number) => {
-                const optionLetter = String.fromCharCode(65 + index) // A, B, C, D
-                const isSelected = selectedAnswer === optionLetter
-                // Remove wasAnswered logic - only use isSelected
-
-                return (
-                  <button
-                    key={optionLetter}
-                    onClick={() => handleAnswerClick(optionLetter)}
-                    className={`w-full rounded-xl border-2 p-4 text-left transition-all hover:shadow-md ${
-                      isSelected
-                        ? 'border-indigo-300 bg-indigo-50 shadow-sm'
-                        : 'border-gray-200 hover:border-gray-300'
-                    }`}
-                  >
-                    <div className="flex items-start gap-4">
-                      <div
-                        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 font-semibold ${
-                          isSelected
-                            ? 'border-indigo-500 bg-indigo-100 text-indigo-700'
-                            : 'border-gray-300 text-gray-600'
-                        }`}
-                      >
-                        {optionLetter}
-                      </div>
-                      <span
-                        className={`leading-relaxed ${
-                          isSelected ? 'text-indigo-800' : 'text-gray-700'
-                        }`}
-                      >
-                        {option}
-                      </span>
-                    </div>
-                  </button>
-                )
-              })}
-            </div>
+            {/* Use QuestionFactory for registry-based rendering */}
+            <QuestionFactory
+              question={autoMigrateQuestion(question)}
+              questionIndex={questionIndex}
+              totalQuestions={totalQuestionsInSet}
+              currentSetIndex={currentSetIndex}
+              totalSets={totalSets}
+              responses={Array.isArray(responses) ? responses.map(r => {
+                // Convert legacy response to new format if needed
+                if ('answer' in r) {
+                  // Legacy format - convert to QuestionResponse
+                  return {
+                    questionIndex: r.questionIndex,
+                    questionType: 'multiple-choice' as const,
+                    timestamp: new Date(),
+                    response: { selectedOption: r.answer as 'A' | 'B' | 'C' | 'D' }
+                  }
+                }
+                return r as QuestionResponse
+              }) : []}
+              onAnswerSelect={(qIndex: number, response: QuestionResponse) => {
+                // Convert back to legacy format for compatibility
+                const legacyAnswer = response.questionType === 'multiple-choice'
+                  ? response.response.selectedOption
+                  : JSON.stringify(response.response)
+                onAnswerSelect(qIndex, legacyAnswer)
+              }}
+              showResults={false}
+              enableWordSelection={true}
+            />
 
             {/* Action Buttons */}
             <div className="flex gap-3 border-t border-gray-200 pt-6">
@@ -485,7 +475,7 @@ export function GroupQuizActiveView({
                           return answeredQuestionsInSet < totalQuestionsInSet
                         } else {
                           // For next question button: just require current question to be answered
-                          return !selectedAnswer && !currentResponse
+                          return !currentResponse
                         }
                       })()}
                       className="flex-1 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 py-3 font-semibold text-white hover:from-indigo-700 hover:to-purple-700 disabled:opacity-50"
@@ -496,7 +486,7 @@ export function GroupQuizActiveView({
                   <TooltipContent>
                     {isLastQuestion && answeredQuestionsInSet < totalQuestionsInSet
                       ? `Answer all questions to submit (${answeredQuestionsInSet}/${totalQuestionsInSet} answered)`
-                      : !selectedAnswer && !currentResponse && !isLastQuestion
+                      : !currentResponse && !isLastQuestion
                         ? 'Select an answer to continue'
                         : 'Ready to proceed'}
                   </TooltipContent>

@@ -127,14 +127,31 @@ function QuestionFactoryError({
 /**
  * Preview factory for question previews (used in generation/admin interfaces)
  */
-export function QuestionPreviewFactory({ question }: { question: GeneratedQuestion }) {
+export function QuestionPreviewFactory({
+  question,
+  showAnswers,
+  videoUrl,
+  ...props
+}: {
+  question: GeneratedQuestion
+  showAnswers?: boolean
+  videoUrl?: string
+  [key: string]: any
+}) {
   try {
     if (!QuestionTypeRegistry.isRegistered(question.type)) {
       return <UnsupportedQuestionType questionType={question.type} />
     }
 
     const PreviewComponent = QuestionTypeRegistry.getPreviewComponent(question.type)
-    return <PreviewComponent question={question} />
+    return (
+      <PreviewComponent
+        question={question}
+        showAnswers={showAnswers}
+        videoUrl={videoUrl}
+        {...props}
+      />
+    )
   } catch (error) {
     console.error('QuestionPreviewFactory error:', error)
     return <QuestionFactoryError error={error as Error} question={question} />

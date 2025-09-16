@@ -86,7 +86,7 @@ export class QuestionTypeRegistry {
   /**
    * Get preview component for a question type
    */
-  static getPreviewComponent(type: QuestionType): React.ComponentType<{ question: GeneratedQuestion }> {
+  static getPreviewComponent(type: QuestionType): React.ComponentType<any> {
     const config = this.types.get(type)
     if (!config) {
       throw new Error(`Question type '${type}' is not registered`)

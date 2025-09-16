@@ -4,7 +4,6 @@ import { useState } from 'react'
 import {
   AlertCircle,
   ArrowLeft,
-  Check,
   CheckCircle,
   Eye,
   EyeOff,
@@ -16,8 +15,13 @@ import { Badge } from '../../../../../../components/ui/badge'
 import { Button } from '../../../../../../components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../../../../components/ui/tabs'
 import { ExplanationWithTimeframes } from '../../../../../../components/groups/quiz/ExplanationWithTimeframes'
+import { QuestionPreviewFactory } from '../../../../../../components/questions/QuestionFactory'
+import { GeneratedQuestion } from '../../../../../../lib/types/question-types'
+import { autoMigrateQuestion } from '../../../../../../lib/utils/question-migration'
+import '../../../../../../lib/registry' // Initialize question type registry
 
-interface Question {
+// Legacy question interface for backward compatibility
+interface LegacyQuestion {
   id: string
   question: string
   options: string[]
@@ -28,7 +32,7 @@ interface Question {
 
 interface DifficultyGroup {
   difficulty: 'easy' | 'medium' | 'hard'
-  questions: Question[]
+  questions: LegacyQuestion[] | GeneratedQuestion[]
   completed: boolean
 }
 
@@ -207,80 +211,39 @@ export function GroupQuizPreview({
             {difficultyGroups.map((group, setIndex) => (
               <TabsContent key={setIndex} value={`set-${setIndex}`}>
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-1 xl:grid-cols-1 2xl:grid-cols-2">
-                  {group.questions.map((question, questionIndex) => (
-                    <div
-                      key={question.id || questionIndex}
-                      className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm transition-shadow duration-300 hover:shadow-md"
-                    >
-                      <div className="flex items-center justify-between border-b border-gray-200 bg-gray-50 px-4 py-2">
-                        <p className="font-semibold text-indigo-700">
-                          Question {questionIndex + 1}
-                        </p>
-                        <Badge
-                          className={`border-none text-xs font-bold capitalize ${
-                            DIFFICULTY_COLORS[question.difficulty]
-                          }`}
-                        >
-                          {question.difficulty}
-                        </Badge>
-                      </div>
+                  {group.questions.map((question, questionIndex) => {
+                    // Migrate legacy question to new format if needed
+                    const migratedQuestion = autoMigrateQuestion(question as any)
 
-                      <div className="p-4">
-                        <p className="mb-4 text-base text-gray-800">{question.question}</p>
-
-                        <div className="space-y-2">
-                          {question.options.map((option, optionIndex) => {
-                            const optionLetter = String.fromCharCode(65 + optionIndex)
-                            const isCorrect = showAnswers && optionLetter === question.correctAnswer
-
-                            return (
-                              <div
-                                key={optionIndex}
-                                className={`flex items-center justify-between rounded-md border p-3 transition-colors ${
-                                  isCorrect
-                                    ? 'border-green-300 bg-green-50/70'
-                                    : 'border-gray-200 bg-white'
-                                }`}
-                              >
-                                <div className="flex items-start gap-3">
-                                  <span
-                                    className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full border text-sm font-semibold ${
-                                      isCorrect
-                                        ? 'border-green-500 bg-green-100 text-green-700'
-                                        : 'border-gray-300 text-gray-600'
-                                    }`}
-                                  >
-                                    {optionLetter}
-                                  </span>
-                                  <span
-                                    className={`flex-1 text-sm ${
-                                      isCorrect ? 'font-semibold text-green-900' : 'text-gray-700'
-                                    }`}
-                                  >
-                                    {option}
-                                  </span>
-                                </div>
-                                {isCorrect && <Check className="h-5 w-5 text-green-600" />}
-                              </div>
-                            )
-                          })}
+                    return (
+                      <div
+                        key={question.id || questionIndex}
+                        className="overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm transition-shadow duration-300 hover:shadow-md"
+                      >
+                        <div className="flex items-center justify-between border-b border-gray-200 bg-gray-50 px-4 py-2">
+                          <p className="font-semibold text-indigo-700">
+                            Question {questionIndex + 1}
+                          </p>
+                          <Badge
+                            className={`border-none text-xs font-bold capitalize ${
+                              DIFFICULTY_COLORS[migratedQuestion.difficulty]
+                            }`}
+                          >
+                            {migratedQuestion.difficulty}
+                          </Badge>
                         </div>
 
-                        {showAnswers && question.explanation && (
-                          <div className="mt-4 rounded-md border border-blue-200 bg-blue-50 p-3">
-                            <p className="text-sm font-semibold text-blue-800">Explanation</p>
-                            <div className="mt-1">
-                              <ExplanationWithTimeframes
-                                explanation={question.explanation}
-                                videoUrl={videoUrl}
-                                className="text-sm text-blue-700"
-                              />
-                            </div>
-                          </div>
-                        )}
+                        <div className="p-4">
+                          {/* Use QuestionPreviewFactory for registry-based rendering */}
+                          <QuestionPreviewFactory
+                            question={migratedQuestion}
+                            showAnswers={showAnswers}
+                            videoUrl={videoUrl}
+                          />
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </TabsContent>
             ))}
