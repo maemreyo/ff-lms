@@ -695,11 +695,11 @@ export function useGroupQuiz({ groupId, sessionId }: UseGroupQuizProps) {
         if (isCorrect) totalCorrect++;
 
         const userOptionIndex = response.answer.charCodeAt(0) - 65;
-        const correctOptionIndex = question?.correctAnswer.charCodeAt(0) - 65;
+        const correctOptionIndex = question?.correctAnswer?.charCodeAt(0) - 65;
         const userAnswerText = question?.options[userOptionIndex]
           ? `${response.answer}. ${question.options[userOptionIndex]}`
           : response.answer;
-        const correctAnswerText = question?.options[correctOptionIndex]
+        const correctAnswerText = question?.correctAnswer && question?.options[correctOptionIndex]
           ? `${question.correctAnswer}. ${question.options[correctOptionIndex]}`
           : question?.correctAnswer;
 

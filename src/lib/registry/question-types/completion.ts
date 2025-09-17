@@ -12,10 +12,8 @@ import {
   CompletionResponse,
   QuestionEvaluationResult
 } from '@/lib/types/question-types'
-import {
-  CompletionQuestion,
-  CompletionPreview
-} from '@/components/questions/types/CompletionQuestion'
+import { CompletionQuestionActive } from '@/components/questions/types/CompletionQuestionActive'
+import { CompletionQuestionPreview } from '@/components/questions/types/CompletionQuestionPreview'
 import {
   completionQuestionsPrompt,
   singleDifficultyCompletionPrompt
@@ -151,8 +149,8 @@ export function generateSampleCompletionQuestion(): CompletionQuestionType {
  */
 const completionConfig: QuestionTypeConfig = {
   // Components
-  component: CompletionQuestion,
-  previewComponent: CompletionPreview,
+  component: CompletionQuestionActive,
+  previewComponent: CompletionQuestionPreview,
 
   // Validation and scoring
   responseValidator: validateCompletionResponse,
