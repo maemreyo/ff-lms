@@ -48,19 +48,103 @@ function calculateCompletionScore(
   response: CompletionResponse
 ): QuestionEvaluationResult {
   const blanks = question.content.blanks
-  const userAnswers = response.response.answers
-  const totalBlanks = blanks.length
 
+  // Handle different response formats
+  let userAnswers: Array<{ blankId: string; value: string }> = []
+  
+  if (response.response && response.response.answers && Array.isArray(response.response.answers)) {
+    // Standard format: response.response.answers
+    userAnswers = response.response.answers
+  } else if ((response as any).answers && Array.isArray((response as any).answers)) {
+    // Alternative format: response.answers directly
+    userAnswers = (response as any).answers
+  } else if ((response as any).answer && typeof (response as any).answer === 'string') {
+    // JSON string format: response.answer contains stringified JSON
+    try {
+      const parsedAnswer = JSON.parse((response as any).answer)
+      if (parsedAnswer.answers && Array.isArray(parsedAnswer.answers)) {
+        userAnswers = parsedAnswer.answers
+      }
+    } catch (error) {
+      console.warn('🚨 [Completion Score] Failed to parse JSON from response.answer:', error)
+    }
+  } else if (response.response && Array.isArray(response.response)) {
+    // Array format: response.response is the answers array
+    userAnswers = response.response
+  } else {
+    // Try to extract from any possible nested structure
+    let foundAnswers = false
+    
+    // Check if response has any property that contains answers
+    for (const [key, value] of Object.entries(response)) {
+      if (key !== 'questionIndex' && key !== 'questionType' && key !== 'timestamp') {
+        if (Array.isArray(value) && value.length > 0 && value[0] && typeof value[0] === 'object' && 
+            ('blankId' in value[0] || 'value' in value[0])) {
+          userAnswers = value
+          foundAnswers = true
+          break
+        } else if (value && typeof value === 'object' && 'answers' in value && Array.isArray(value.answers)) {
+          userAnswers = value.answers
+          foundAnswers = true
+          break
+        }
+      }
+    }
+    
+    if (!foundAnswers) {
+      // Return zero score for unhandled formats
+      const totalBlanks = blanks.length
+      return {
+        questionIndex: response.questionIndex,
+        questionType: 'completion',
+        isCorrect: false,
+        score: 0,
+        maxScore: 1,
+        feedback: 'No answers provided - unable to evaluate response.',
+        partialCredit: {
+          earned: 0,
+          possible: totalBlanks,
+          details: blanks.map((blank, index) => `blank-${blank.id || `blank-${index}`}-incorrect`)
+        }
+      }
+    }
+  }
+
+  const totalBlanks = blanks.length
   let correctBlanks = 0
   const details: string[] = []
 
   // Check each blank
-  blanks.forEach(blank => {
-    const userAnswer = userAnswers.find(answer => answer.blankId === blank.id)
+  blanks.forEach((blank, index) => {
+    // Handle different blank ID formats
+    const blankId = blank.id || `blank-${index}`
+    let userAnswer = userAnswers.find(answer => 
+      answer.blankId === blankId || 
+      answer.blankId === blank.id ||
+      answer.blankId === `blank-${index}`
+    )
+    
+    // Fallback: try by index if no ID match found
+    if (!userAnswer && userAnswers[index]) {
+      userAnswer = userAnswers[index]
+    }
+    
     const userValue = userAnswer?.value?.trim() || ''
 
+    // Handle different acceptable answer formats
+    let acceptedAnswers: string[] = []
+    if (blank.acceptedAnswers && Array.isArray(blank.acceptedAnswers)) {
+      acceptedAnswers = blank.acceptedAnswers
+    } else if ((blank as any).answer) {
+      // AI-generated format with single answer
+      acceptedAnswers = [(blank as any).answer]
+      if ((blank as any).alternatives && Array.isArray((blank as any).alternatives)) {
+        acceptedAnswers.push(...(blank as any).alternatives)
+      }
+    }
+
     // Check if user's answer matches any accepted answer
-    const isCorrect = blank.acceptedAnswers.some(acceptedAnswer => {
+    const isCorrect = acceptedAnswers.some(acceptedAnswer => {
       const normalizedAccepted = blank.caseSensitive
         ? acceptedAnswer.trim()
         : acceptedAnswer.trim().toLowerCase()
@@ -73,9 +157,9 @@ function calculateCompletionScore(
 
     if (isCorrect) {
       correctBlanks++
-      details.push(`blank-${blank.id}-correct`)
+      details.push(`blank-${blankId}-correct`)
     } else {
-      details.push(`blank-${blank.id}-incorrect`)
+      details.push(`blank-${blankId}-incorrect`)
     }
   })
 

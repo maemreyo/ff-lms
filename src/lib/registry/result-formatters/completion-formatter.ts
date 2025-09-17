@@ -16,17 +16,48 @@ export const completionFormatter: ResultFormatter = {
     const completionQuestion = question as CompletionQuestion
     const completionResponse = response as CompletionResponse
 
-    if (!completionResponse.response?.answers) {
+    // Handle different response formats - same logic as score calculator
+    let answers: Array<{ blankId: string; value: string }> = []
+
+    if (completionResponse.response && completionResponse.response.answers && Array.isArray(completionResponse.response.answers)) {
+      // Standard format: response.response.answers
+      answers = completionResponse.response.answers
+    } else if ((completionResponse as any).answers && Array.isArray((completionResponse as any).answers)) {
+      // Alternative format: response.answers directly
+      answers = (completionResponse as any).answers
+    } else if ((completionResponse as any).answer && typeof (completionResponse as any).answer === 'string') {
+      // JSON string format: response.answer contains stringified JSON
+      try {
+        const parsedAnswer = JSON.parse((completionResponse as any).answer)
+        if (parsedAnswer.answers && Array.isArray(parsedAnswer.answers)) {
+          answers = parsedAnswer.answers
+        }
+      } catch (error) {
+        console.warn('🚨 [Completion Formatter] Failed to parse JSON from response.answer:', error)
+      }
+    } else if (completionResponse.response && Array.isArray(completionResponse.response)) {
+      // Array format: response.response is the answers array
+      answers = completionResponse.response
+    }
+
+    // Return "No answer provided" if no valid answers found
+    if (answers.length === 0) {
       return "No answer provided"
     }
 
-    const answers = completionResponse.response.answers
     const blanks = completionQuestion.content.blanks.sort((a, b) => a.position - b.position)
 
     // Create a clean display format
     return blanks
       .map((blank, index) => {
-        const answer = answers.find(a => a.blankId === blank.id || a.blankId === `blank-${index}`)
+        const blankId = blank.id || `blank-${index}`
+        let answer = answers.find(a => a.blankId === blankId || a.blankId === blank.id || a.blankId === `blank-${index}`)
+        
+        // Fallback: try by index if no ID match found
+        if (!answer && answers[index]) {
+          answer = answers[index]
+        }
+        
         const value = answer?.value?.trim() || '(empty)'
         return `Blank ${index + 1}: "${value}"`
       })
@@ -36,53 +67,33 @@ export const completionFormatter: ResultFormatter = {
   formatCorrectAnswer: (question: GeneratedQuestion): string => {
     const completionQuestion = question as CompletionQuestion
     const blanks = completionQuestion.content.blanks.sort((a, b) => a.position - b.position)
-
+    
     return blanks
       .map((blank, index) => {
-        // Handle both expected format (acceptedAnswers) and AI-generated format (answer)
-        let acceptedAnswers: string[] = []
-
-        if (blank.acceptedAnswers && Array.isArray(blank.acceptedAnswers)) {
-          acceptedAnswers = blank.acceptedAnswers
-        } else if ((blank as any).answer) {
-          acceptedAnswers = [(blank as any).answer]
-          // Include alternatives if they exist
-          if ((blank as any).alternatives && Array.isArray((blank as any).alternatives)) {
-            acceptedAnswers.push(...(blank as any).alternatives)
+        // Handle different acceptable answer formats
+        let correctAnswer = ''
+        if (blank.acceptedAnswers && Array.isArray(blank.acceptedAnswers) && blank.acceptedAnswers.length > 0) {
+          correctAnswer = blank.acceptedAnswers[0]
+          const additionalCount = blank.acceptedAnswers.length - 1
+          if (additionalCount > 0) {
+            correctAnswer += ` (+ ${additionalCount} more)`
           }
+        } else if ((blank as any).answer) {
+          // AI-generated format
+          correctAnswer = (blank as any).answer
+          if ((blank as any).alternatives && Array.isArray((blank as any).alternatives) && (blank as any).alternatives.length > 0) {
+            correctAnswer += ` (+ ${(blank as any).alternatives.length} more)`
+          }
+        } else {
+          correctAnswer = '???'
         }
-
-        const primaryAnswer = acceptedAnswers[0] || '???'
-        const alternatives = acceptedAnswers.slice(1)
-
-        let result = `Blank ${index + 1}: "${primaryAnswer}"`
-        if (alternatives.length > 0 && alternatives.length <= 2) {
-          result += ` (or: ${alternatives.map(alt => `"${alt}"`).join(', ')})`
-        } else if (alternatives.length > 2) {
-          result += ` (+ ${alternatives.length} more)`
-        }
-
-        return result
+        
+        return `Blank ${index + 1}: "${correctAnswer}"`
       })
       .join(' • ')
   },
 
   formatExplanation: (question: GeneratedQuestion, evaluation: QuestionEvaluationResult): string => {
-    // Start with the main explanation
-    let explanation = question.explanation || evaluation.feedback || ""
-
-    // Add partial credit details if available
-    if (evaluation.partialCredit?.details && evaluation.partialCredit.details.length > 0) {
-      const correctCount = evaluation.partialCredit.details.filter(detail =>
-        detail.includes('-correct')
-      ).length
-      const totalCount = evaluation.partialCredit.possible || (question as CompletionQuestion).content.blanks.length
-
-      if (correctCount < totalCount) {
-        explanation += `\n\nScore: ${correctCount}/${totalCount} blanks correct.`
-      }
-    }
-
-    return explanation || "Fill in the blanks based on what you heard in the audio."
+    return evaluation.feedback || question.explanation || 'No explanation available'
   }
 }

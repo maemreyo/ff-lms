@@ -1,0 +1,174 @@
+Lúc query về đã là No anwser provide rồi, liệu có cần kiểm tra lại phần lúc submit các câu trả lời trong quá trình làm ở màn /active/[tokens] không?
+```
+{
+    "session": {
+        "id": "4f4e89f9-ba71-4da8-96f7-e2dd9af9cc9f",
+        "group_id": "9f640f92-d11c-463d-b3a6-2df737c912f0",
+        "quiz_token": "4f4e89f9-ba71-4da8-96f7-e2dd9af9cc9f",
+      ...
+    "results": [
+        {
+            "id": "6854a3f5-3a85-4b8e-9e49-1af2fb7f8bef",
+            "session_id": "4f4e89f9-ba71-4da8-96f7-e2dd9af9cc9f",
+            "user_id": "39abb7b6-93ca-4f4c-b07b-1087f6224cb5",
+            "user_name": "Trung",
+            "score": 0,
+            "total_questions": 10,
+            "correct_answers": 0,
+            "time_taken_seconds": null,
+            "completed_at": "2025-09-17T10:54:38.175+00:00",
+            "result_data": {
+                "allResults": [
+                    {
+                        "points": 0,
+                        "question": "In 479 BC, when Persian soldiers besieged the Greek city of Potidaea, the tide retreated much farther than usual, leaving ____ convenient invasion route.",
+                        "isCorrect": false,
+                        "questionId": "tsunami_grammar_1",
+                        "userAnswer": "No answer provided",
+                        "explanation": "The indefinite article 'a' is used here because 'convenient' is a singular, countable noun and it's the first mention of this specific route.\n\nScore: 0/1 blanks correct.",
+                        "correctAnswer": "Blank 1: \"a\" (+ 3 more)"
+                    },
+                    {
+                        "points": 0,
+                        "question": "But what really saved them was likely the same phenomenon that has destroyed countless others: ____ tsunami.",
+                        "isCorrect": false,
+                        "questionId": "tsunami_grammar_2",
+                        "userAnswer": "No answer provided",
+                        "explanation": "The indefinite article 'a' is used because 'tsunami' is a singular, countable noun and it's being introduced as one example of a phenomenon.\n\nScore: 0/1 blanks correct.",
+                        "correctAnswer": "Blank 1: \"a\" (+ 3 more)"
+                    },
+                    {
+                        "points": 0,
+                        "question": "Although tsunamis are commonly known as tidal waves, they're actually unrelated ____ the tidal activity caused by the gravitational forces of the Sun and Moon.",
+                        "isCorrect": false,
+                        "questionId": "tsunami_grammar_3",
+                        "userAnswer": "No answer provided",
+                        "explanation": "The preposition 'to' is used with the adjective 'unrelated' to show the connection or lack thereof.\n\nScore: 0/1 blanks correct.",
+                        "correctAnswer": "Blank 1: \"to\" (+ 3 more)"
+                    },
+                    {
+                        "points": 0,
+                        "question": "They have a trough and a crest, and consist not of moving water, ____ the movement of energy through water.",
+                        "isCorrect": false,
+                        "questionId": "tsunami_grammar_4",
+                        "userAnswer": "No answer provided",
+                        "explanation": "The conjunction 'but' is used to contrast the idea of 'not moving water' with 'the movement of energy'.\n\nScore: 0/1 blanks correct.",
+                        "correctAnswer": "Blank 1: \"but\" (+ 3 more)"
+                    },
+                    {
+                        "points": 0,
+                        "question": "The Potiidaeans believed they had been saved ____ the wrath of Poseidon.",
+                        "isCorrect": false,
+                        "questionId": "tsunami_grammar_1",
+                        "userAnswer": "No answer provided",
+                        "explanation": "The preposition 'by' is used here to indicate the agent or cause of being saved. The Potiidaeans believed Poseidon's wrath was the reason they were saved.\n\nScore: 0/1 blanks correct.",
+                        "correctAnswer": "Blank 1: \"by\" (+ 3 more)"
+                    },
+                    {
+                        "points": 0,
+                        "question": "For normal ocean waves, it comes from wind. Because this only affects the surface, the waves ____ limited in size and speed.",
+                        "isCorrect": false,
+                        "questionId": "tsunami_grammar_3",
+                        "userAnswer": "No answer provided",
+                        "explanation": "The auxiliary verb 'are' is used because the subject 'waves' is plural and the sentence is in the present tense, describing a general characteristic.\n\nScore: 0/1 blanks correct.",
+                        "correctAnswer": "Blank 1: \"are\" (+ 3 more)"
+                    },
+                    {
+                        "points": 0,
+                        "question": "But when it reaches shallow water, something called wave shoaling occurs. Because there ____ less water to move through, this still massive amount of energy is compressed.",
+                        "isCorrect": false,
+                        "questionId": "tsunami_grammar_4",
+                        "userAnswer": "No answer provided",
+                        "explanation": "The auxiliary verb 'is' is used with the singular noun 'water' (which is treated as uncountable here) to indicate its presence in the present tense.\n\nScore: 0/1 blanks correct.",
+                        "correctAnswer": "Blank 1: \"is\" (+ 3 more)"
+                    },
+                    {
+                        "points": 0,
+                        "question": "But tsunamis are caused by energy originating underwater, from a volcanic eruption, a submarine landslide, or most commonly, an earthquake on the ocean floor caused when the tectonic plates of the Earth's surface slip, releasing a massive amount of energy ____ the water.",
+                        "isCorrect": false,
+                        "questionId": "tsunami_work_medium_2",
+                        "userAnswer": "No answer provided",
+                        "explanation": "The preposition 'into' is used to show movement from one place to another, in this case, energy moving from the slipping tectonic plates into the water.\n\nScore: 0/1 blanks correct.",
+                        "correctAnswer": "Blank 1: \"into\" (+ 3 more)"
+                    },
+                    {
+                        "points": 0,
+                        "question": "As if that weren't enough, the water then retreats, dragging with it the newly created debris, and anything, or anyone, unfortunate enough to be caught in its path. The 2004 Indian Ocean tsunami was one of the deadliest natural disasters in history, killing over 200,000 people throughout South Asia. So how can we protect ourselves against this destructive force of nature? People in some areas have attempted to stop tsunamis with sea walls, flood gates, and channels to divert the water. But these are not always effective. In 2011, a tsunami surpassed the flood wall protecting Japan's Fukushima Power Plant, causing a nuclear disaster in addition to claiming over 18,000 lives. Many scientists and policy makers are instead focusing on early detection, monitoring underwater pressure and seismic activity, and establishing global communication networks for quickly distributing alerts. When nature is too powerful to stop, the safest course is to get out of ____ way.",
+                        "isCorrect": false,
+                        "questionId": "tsunami_work_hard_3",
+                        "userAnswer": "No answer provided",
+                        "explanation": "'Its' is the possessive form of 'it,' used to show ownership or belonging. In this context, it refers to the way of nature.\n\nScore: 0/1 blanks correct.",
+                        "correctAnswer": "Blank 1: \"its\" (+ 3 more)"
+                    },
+                    {
+                        "points": 0,
+                        "question": "The word tsunami, Japanese for 'harbor wave,' comes from the fact that it only seems to appear near the coast. If the trough of a tsunami reaches shore first, the water will withdraw farther than normal before the wave hits, which can be misleadingly dangerous. A tsunami will not only drown people near the coast, ____ level buildings and trees for a mile inland or more, especially in low-lying areas.",
+                        "isCorrect": false,
+                        "questionId": "tsunami_hard_3",
+                        "userAnswer": "No answer provided",
+                        "explanation": "The phrase 'not only... but also' is a correlative conjunction pair used to emphasize two equally important points. Here, it connects the two destructive actions of a tsunami: drowning people and leveling buildings. 'But' is the correct word to complete this structure.\n\nScore: 0/1 blanks correct.",
+                        "correctAnswer": "Blank 1: \"but\" (+ 3 more)"
+                    }
+                ],
+                "difficultyGroups": [
+                    {
+                        "difficulty": "easy",
+                        "questionCount": 4
+                    },
+                    {
+                        "difficulty": "medium",
+                        "questionCount": 4
+                    },
+                    {
+                        "difficulty": "hard",
+                        "questionCount": 2
+                    }
+                ]
+            },
+            "answers_data": {
+                "setIndex": 2,
+                "responses": [
+                    {
+                        "answer": "{\"answers\":[{\"blankId\":\"blank-0\",\"value\":\"cau 1 set 3\"}]}",
+                        "questionIndex": 8
+                    },
+                    {
+                        "answer": "{\"answers\":[{\"blankId\":\"blank-0\",\"value\":\"cau 2 set 3\"}]}",
+                        "questionIndex": 9
+                    }
+                ],
+                "difficulty": "hard",
+                "detailedResults": [
+                    {
+                        "points": 0,
+                        "question": "As if that weren't enough, the water then retreats, dragging with it the newly created debris, and anything, or anyone, unfortunate enough to be caught in its path. The 2004 Indian Ocean tsunami was one of the deadliest natural disasters in history, killing over 200,000 people throughout South Asia. So how can we protect ourselves against this destructive force of nature? People in some areas have attempted to stop tsunamis with sea walls, flood gates, and channels to divert the water. But these are not always effective. In 2011, a tsunami surpassed the flood wall protecting Japan's Fukushima Power Plant, causing a nuclear disaster in addition to claiming over 18,000 lives. Many scientists and policy makers are instead focusing on early detection, monitoring underwater pressure and seismic activity, and establishing global communication networks for quickly distributing alerts. When nature is too powerful to stop, the safest course is to get out of ____ way.",
+                        "isCorrect": false,
+                        "questionId": "tsunami_work_hard_3",
+                        "userAnswer": "No answer provided",
+                        "explanation": "'Its' is the possessive form of 'it,' used to show ownership or belonging. In this context, it refers to the way of nature.\n\nScore: 0/1 blanks correct.",
+                        "correctAnswer": "Blank 1: \"its\" (+ 3 more)"
+                    },
+                    {
+                        "points": 0,
+                        "question": "The word tsunami, Japanese for 'harbor wave,' comes from the fact that it only seems to appear near the coast. If the trough of a tsunami reaches shore first, the water will withdraw farther than normal before the wave hits, which can be misleadingly dangerous. A tsunami will not only drown people near the coast, ____ level buildings and trees for a mile inland or more, especially in low-lying areas.",
+                        "isCorrect": false,
+                        "questionId": "tsunami_hard_3",
+                        "userAnswer": "No answer provided",
+                        "explanation": "The phrase 'not only... but also' is a correlative conjunction pair used to emphasize two equally important points. Here, it connects the two destructive actions of a tsunami: drowning people and leveling buildings. 'But' is the correct word to complete this structure.\n\nScore: 0/1 blanks correct.",
+                        "correctAnswer": "Blank 1: \"but\" (+ 3 more)"
+                    }
+                ]
+            },
+            "time_taken": 0,
+            "user_email": null,
+            "username": "Trung"
+        }
+    ],
+    "stats": {
+        "total_participants": 1,
+        "average_score": 0,
+        "highest_score": 0,
+        "completion_rate": 100
+    }
+}
+```
