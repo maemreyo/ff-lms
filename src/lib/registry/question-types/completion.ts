@@ -18,6 +18,8 @@ import {
   completionQuestionsPrompt,
   singleDifficultyCompletionPrompt
 } from '@/lib/services/ai/prompts/completion-prompts'
+import { ResultDisplayRegistry } from '../ResultDisplayRegistry'
+import { completionFormatter } from '../result-formatters/completion-formatter'
 
 /**
  * Validate completion response format
@@ -202,6 +204,12 @@ QuestionTypeRegistry.register('completion', completionConfig)
  * Register 'fill-blank' as an alias for compatibility with database questions
  */
 QuestionTypeRegistry.register('fill-blank', completionConfig)
+
+/**
+ * Register result formatter for completion questions
+ */
+ResultDisplayRegistry.register('completion', completionFormatter)
+ResultDisplayRegistry.register('fill-blank', completionFormatter)
 
 // Export for testing and utilities
 export {

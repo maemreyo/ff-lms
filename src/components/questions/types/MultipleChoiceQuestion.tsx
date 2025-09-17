@@ -1,10 +1,9 @@
+"use client"
 /**
  * Multiple Choice Question Component
  * Migrated from original QuestionCard.tsx to use registry system
  */
 
-import { useEffect, useRef } from 'react'
-import { useWordSelection } from '@/lib/hooks/use-word-selection'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Check } from 'lucide-react'
@@ -15,6 +14,7 @@ import {
   MultipleChoiceResponse,
   QuestionEvaluationResult
 } from '@/lib/types/question-types'
+import { useRef } from 'react'
 
 /**
  * Multiple Choice Question Component
@@ -34,32 +34,6 @@ export function MultipleChoiceQuestion({
   const selectedAnswer = responses.find(r => r.questionIndex === questionIndex)?.response
   const questionRef = useRef<HTMLDivElement>(null)
   const optionsRef = useRef<HTMLDivElement>(null)
-  const { enableSelection, disableSelection } = useWordSelection()
-
-  // Enable word selection on mount
-  useEffect(() => {
-    if (enableWordSelection && questionRef.current) {
-      enableSelection(
-        `question-text-${questionIndex}`,
-        'quiz',
-        `${questionIndex}-question`
-      )
-    }
-
-    if (enableWordSelection && optionsRef.current) {
-      enableSelection(
-        `question-options-${questionIndex}`,
-        'quiz',
-        `${questionIndex}-options`
-      )
-    }
-
-    return () => {
-      // Cleanup on unmount
-      disableSelection(`question-text-${questionIndex}`)
-      disableSelection(`question-options-${questionIndex}`)
-    }
-  }, [enableWordSelection, questionIndex, enableSelection, disableSelection])
 
   const getOptionStatus = (optionLetter: string) => {
     if (!showResults) return 'default'

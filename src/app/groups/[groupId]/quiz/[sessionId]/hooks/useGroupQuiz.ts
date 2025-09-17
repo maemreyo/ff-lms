@@ -14,6 +14,16 @@ import { quizQueryKeys, quizQueryOptions } from "../lib/query-keys";
 import { fetchGroup, fetchGroupSession } from "../queries";
 import { useRealtimeSession } from "./useRealtimeSession";
 import { useSharedQuestions } from "./useSharedQuestions";
+import { QuestionTypeRegistry } from "@/lib/registry/QuestionTypeRegistry";
+import { ResultDisplayRegistry } from "@/lib/registry/ResultDisplayRegistry";
+import type {
+  QuestionResponse as NewQuestionResponse,
+  GeneratedQuestion
+} from "@/lib/types/question-types";
+
+// Import question type registrations to ensure they're loaded
+import "@/lib/registry/question-types/multiple-choice";
+import "@/lib/registry/question-types/completion";
 
 type AppState =
   | "loading"
@@ -690,29 +700,66 @@ export function useGroupQuiz({ groupId, sessionId }: UseGroupQuizProps) {
         const question = difficultyGroups[i].questions.find(
           (_, idx) => resultStartIndex + idx === response.questionIndex
         );
-        const isCorrect =
-          question && question.correctAnswer === response.answer;
-        if (isCorrect) totalCorrect++;
 
-        const userOptionIndex = response.answer.charCodeAt(0) - 65;
-        const correctOptionIndex = question?.correctAnswer?.charCodeAt(0) - 65;
-        const userAnswerText = question?.options[userOptionIndex]
-          ? `${response.answer}. ${question.options[userOptionIndex]}`
-          : response.answer;
-        const correctAnswerText = question?.correctAnswer && question?.options[correctOptionIndex]
-          ? `${question.correctAnswer}. ${question.options[correctOptionIndex]}`
-          : question?.correctAnswer;
+        if (!question) {
+          return {
+            questionId: `q_${response.questionIndex}`,
+            question: "Unknown question",
+            userAnswer: "No answer",
+            correctAnswer: "Unknown",
+            isCorrect: false,
+            explanation: "Question not found.",
+            points: 0,
+            videoUrl: videoUrl,
+          };
+        }
 
-        return {
-          questionId: question?.id || `q_${response.questionIndex}`,
-          question: question?.question || "Unknown question",
-          userAnswer: userAnswerText,
-          correctAnswer: correctAnswerText,
-          isCorrect: !!isCorrect,
-          explanation: question?.explanation || "No explanation available.",
-          points: isCorrect ? 1 : 0,
-          videoUrl: videoUrl,
-        };
+        try {
+          // Use the registry system to calculate score for any question type
+          const evaluation = QuestionTypeRegistry.calculateScore(
+            question as GeneratedQuestion,
+            response as unknown as NewQuestionResponse
+          );
+
+          if (evaluation.isCorrect || evaluation.score > 0) {
+            totalCorrect++;
+          }
+
+          // Use the result display registry to format answers cleanly
+          const resultDisplay = ResultDisplayRegistry.formatResult(
+            question as GeneratedQuestion,
+            response as unknown as NewQuestionResponse,
+            evaluation
+          );
+
+          return {
+            questionId: question.id || `q_${response.questionIndex}`,
+            question: question.question || "Unknown question",
+            userAnswer: resultDisplay.userAnswer,
+            correctAnswer: resultDisplay.correctAnswer,
+            isCorrect: resultDisplay.isCorrect,
+            explanation: resultDisplay.explanation,
+            points: resultDisplay.score,
+            videoUrl: videoUrl,
+          };
+        } catch (error) {
+          console.error('Error evaluating question:', error, { question, response });
+
+          // Fallback for unregistered question types or errors
+          const isCorrect = question.correctAnswer === (response as any).answer;
+          if (isCorrect) totalCorrect++;
+
+          return {
+            questionId: question.id || `q_${response.questionIndex}`,
+            question: question.question || "Unknown question",
+            userAnswer: (response as any).answer || JSON.stringify((response as any).response || response),
+            correctAnswer: question.correctAnswer || "Unknown",
+            isCorrect,
+            explanation: question.explanation || "No explanation available.",
+            points: isCorrect ? 1 : 0,
+            videoUrl: videoUrl,
+          };
+        }
       });
 
       allResults.push(...setResults);
@@ -784,6 +831,11 @@ export function useGroupQuiz({ groupId, sessionId }: UseGroupQuizProps) {
     }
 
     setResults(finalResults);
+
+    // Store responses in sessionStorage for /results/[tokens] page
+    const storageKey = `group-quiz-responses-${groupId}-${sessionId}`
+    sessionStorage.setItem(storageKey, JSON.stringify(responses))
+
     setAppState("quiz-results");
     console.log("Final results with videoUrl:", finalResults);
   };

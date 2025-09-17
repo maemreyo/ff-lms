@@ -1,5 +1,15 @@
 import { NextRequest } from 'next/server'
 import { getSupabaseServer, getCurrentUserServer } from '@/lib/supabase/server'
+import { QuestionTypeRegistry } from '@/lib/registry/QuestionTypeRegistry'
+import { ResultDisplayRegistry } from '@/lib/registry/ResultDisplayRegistry'
+import type {
+  GeneratedQuestion,
+  QuestionResponse as NewQuestionResponse
+} from '@/lib/types/question-types'
+
+// Import question type registrations to ensure they're loaded
+import '@/lib/registry/question-types/multiple-choice'
+import '@/lib/registry/question-types/completion'
 
 function corsResponse(data: any, status = 200) {
   return Response.json(data, {
@@ -67,18 +77,61 @@ export async function POST(
     
     const detailedResults = responses.map((response: any) => {
       const question = questions.find((_: any, idx: number) => idx === response.questionIndex % questions.length)
-      const isCorrect = question && question.correctAnswer === response.answer
-      
-      if (isCorrect) correctAnswers++
 
-      return {
-        questionId: question?.id || `q_${response.questionIndex}`,
-        question: question?.question || 'Unknown question',
-        userAnswer: response.answer,
-        correctAnswer: question?.correctAnswer,
-        isCorrect: !!isCorrect,
-        explanation: question?.explanation || 'No explanation available.',
-        points: isCorrect ? 1 : 0
+      if (!question) {
+        return {
+          questionId: `q_${response.questionIndex}`,
+          question: 'Unknown question',
+          userAnswer: 'No answer',
+          correctAnswer: 'Unknown',
+          isCorrect: false,
+          explanation: 'Question not found.',
+          points: 0
+        }
+      }
+
+      try {
+        // Use the registry system to properly evaluate and format
+        const evaluation = QuestionTypeRegistry.calculateScore(
+          question as GeneratedQuestion,
+          response as unknown as NewQuestionResponse
+        )
+
+        if (evaluation.isCorrect || evaluation.score > 0) {
+          correctAnswers++
+        }
+
+        const resultDisplay = ResultDisplayRegistry.formatResult(
+          question as GeneratedQuestion,
+          response as unknown as NewQuestionResponse,
+          evaluation
+        )
+
+        return {
+          questionId: question.id || `q_${response.questionIndex}`,
+          question: question.question || 'Unknown question',
+          userAnswer: resultDisplay.userAnswer,
+          correctAnswer: resultDisplay.correctAnswer,
+          isCorrect: resultDisplay.isCorrect,
+          explanation: resultDisplay.explanation,
+          points: resultDisplay.score
+        }
+      } catch (error) {
+        console.error('Error evaluating question in submit:', error)
+
+        // Fallback for errors
+        const isCorrect = question.correctAnswer === response.answer
+        if (isCorrect) correctAnswers++
+
+        return {
+          questionId: question.id || `q_${response.questionIndex}`,
+          question: question.question || 'Unknown question',
+          userAnswer: response.answer || JSON.stringify(response.response || response),
+          correctAnswer: question.correctAnswer || 'Unknown',
+          isCorrect,
+          explanation: question.explanation || 'No explanation available.',
+          points: isCorrect ? 1 : 0
+        }
       }
     })
 

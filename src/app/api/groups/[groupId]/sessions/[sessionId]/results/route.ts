@@ -1,6 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseServer, getCurrentUserServer } from '@/lib/supabase/server'
 import { corsResponse, corsHeaders } from '@/lib/cors'
+import { QuestionTypeRegistry } from '@/lib/registry/QuestionTypeRegistry'
+import { ResultDisplayRegistry } from '@/lib/registry/ResultDisplayRegistry'
+import type {
+  GeneratedQuestion,
+  QuestionResponse as NewQuestionResponse
+} from '@/lib/types/question-types'
+
+// Import question type registrations to ensure they're loaded
+import '@/lib/registry/question-types/multiple-choice'
+import '@/lib/registry/question-types/completion'
 
 export async function OPTIONS() {
   return new NextResponse(null, {
@@ -89,18 +99,59 @@ export async function GET(
         //   hasLoopData: !!session.loop_data
         // })
 
-        // Transform results and add videoUrl to each question
-        const resultsWithVideoUrl = (userResult.result_data.allResults || []).map((result: any) => ({
-          ...result,
-          videoUrl: videoUrl
-        }))
+        // Transform results using the new formatting system
+        const rawResults = userResult.result_data.allResults || []
+        const formattedResults = rawResults.map((rawResult: any) => {
+          // Try to reconstruct the question and response for proper formatting
+          try {
+            const question = rawResult.question || rawResult.originalQuestion
+            const responses = userResult.result_data.responses || []
+            const matchingResponse = responses.find((r: any) =>
+              r.questionIndex === rawResult.questionIndex ||
+              r.questionIndex === rawResult.index
+            )
+
+            if (question && matchingResponse) {
+              // Use the registry system to properly evaluate and format
+              const evaluation = QuestionTypeRegistry.calculateScore(
+                question as GeneratedQuestion,
+                matchingResponse as unknown as NewQuestionResponse
+              )
+
+              const resultDisplay = ResultDisplayRegistry.formatResult(
+                question as GeneratedQuestion,
+                matchingResponse as unknown as NewQuestionResponse,
+                evaluation
+              )
+
+              return {
+                questionId: rawResult.questionId || `q_${rawResult.questionIndex}`,
+                question: question.question || rawResult.question,
+                userAnswer: resultDisplay.userAnswer,
+                correctAnswer: resultDisplay.correctAnswer,
+                isCorrect: resultDisplay.isCorrect,
+                explanation: resultDisplay.explanation,
+                points: resultDisplay.score,
+                videoUrl: videoUrl
+              }
+            }
+          } catch (error) {
+            console.warn('Failed to format result using registry, falling back:', error)
+          }
+
+          // Fallback to original formatting if registry fails
+          return {
+            ...rawResult,
+            videoUrl: videoUrl
+          }
+        })
 
         const transformedResult = {
           sessionId: `group_${sessionId}_${userResult.id}`,
           score: userResult.score,
           totalQuestions: userResult.total_questions,
           correctAnswers: userResult.correct_answers,
-          results: resultsWithVideoUrl,
+          results: formattedResults,
           submittedAt: userResult.completed_at,
           setIndex: 0, // Could be derived from result_data if needed
           difficulty: 'mixed',

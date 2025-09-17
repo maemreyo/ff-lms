@@ -1,7 +1,5 @@
 'use client'
 
-import { useEffect } from 'react'
-import { useWordSelection } from '../../../../lib/hooks/use-word-selection'
 import { PresetSelector, QuestionPreset } from '../../../../components/questions/PresetSelector'
 import { Question } from '../../../../components/questions/QuestionCard'
 import { QuestionSet } from '../../../../components/questions/QuestionSetInfo'
@@ -89,17 +87,6 @@ export function PresetSelectionView({
   authLoading = false,
   onSignOut
 }: PresetSelectionViewProps) {
-  const { enableSelection, disableSelection } = useWordSelection()
-
-  // Enable word selection on mount
-  useEffect(() => {
-    if (questionSet) {
-      enableSelection('preset-selection', 'quiz', questionSet.id)
-    }
-    return () => {
-      disableSelection('preset-selection')
-    }
-  }, [questionSet?.id, enableSelection, disableSelection])
 
   if (!questionSet) {
     return null

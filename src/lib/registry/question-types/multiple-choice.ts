@@ -16,6 +16,8 @@ import {
   MultipleChoiceQuestion,
   MultipleChoicePreview
 } from '@/components/questions/types/MultipleChoiceQuestion'
+import { ResultDisplayRegistry } from '../ResultDisplayRegistry'
+import { multipleChoiceFormatter } from '../result-formatters/multiple-choice-formatter'
 
 /**
  * Validate multiple choice response format
@@ -92,6 +94,11 @@ const multipleChoiceConfig: QuestionTypeConfig = {
  * Register the multiple choice question type
  */
 QuestionTypeRegistry.register('multiple-choice', multipleChoiceConfig)
+
+/**
+ * Register result formatter for multiple choice questions
+ */
+ResultDisplayRegistry.register('multiple-choice', multipleChoiceFormatter)
 
 // Export for testing and utilities
 export {

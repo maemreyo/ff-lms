@@ -1,6 +1,7 @@
 'use client'
 
-import { use, useEffect } from 'react'
+import { use, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { GroupQuizActiveView } from '../../components/GroupQuizActiveView'
 import { useQuizFlow } from '../../shared/hooks/useQuizFlow'
 
@@ -14,6 +15,7 @@ interface ActiveWithTokensPageProps {
 
 export default function ActiveWithTokensPage({ params }: ActiveWithTokensPageProps) {
   const { groupId, sessionId, tokens } = use(params)
+  const router = useRouter()
 
   // Decode shareTokens from route parameters
   const decodeShareTokensFromRoute = () => {
@@ -93,13 +95,20 @@ export default function ActiveWithTokensPage({ params }: ActiveWithTokensPagePro
     appState
   } = useQuizFlow({ groupId, sessionId })
 
+  // Custom navigate to results with tokens
+  const navigateToResultsWithTokens = useCallback(() => {
+    // Re-encode the tokens for the results URL (same as how we decoded them)
+    const encodedTokens = tokens[0] // Use the same encoded string from URL
+    router.push(`/groups/${groupId}/quiz/${sessionId}/results/${encodedTokens}`)
+  }, [router, groupId, sessionId, tokens])
+
   // Auto-navigate to results when quiz is completed
   useEffect(() => {
     if (appState === 'quiz-results') {
-      console.log('🎯 Quiz completed, navigating to results page')
-      navigateToResults()
+      console.log('🎯 Quiz completed, navigating to results/tokens page')
+      navigateToResultsWithTokens()
     }
-  }, [appState, navigateToResults])
+  }, [appState, navigateToResultsWithTokens])
 
   // Group settings
   const groupSettings = (group as any)?.settings || {}
