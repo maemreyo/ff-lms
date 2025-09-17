@@ -47,50 +47,80 @@ export const completionFormatter: ResultFormatter = {
 
     const blanks = completionQuestion.content.blanks.sort((a, b) => a.position - b.position)
 
-    // Create a clean display format
-    return blanks
-      .map((blank, index) => {
-        const blankId = blank.id || `blank-${index}`
-        let answer = answers.find(a => a.blankId === blankId || a.blankId === blank.id || a.blankId === `blank-${index}`)
-        
-        // Fallback: try by index if no ID match found
-        if (!answer && answers[index]) {
-          answer = answers[index]
-        }
-        
-        const value = answer?.value?.trim() || '(empty)'
-        return `Blank ${index + 1}: "${value}"`
-      })
-      .join(' • ')
+    // Optimized clean display format
+    if (blanks.length === 1) {
+      // Single blank: just show the answer directly
+      const blankId = blanks[0].id || `blank-0`
+      let answer = answers.find(a => a.blankId === blankId || a.blankId === blanks[0].id || a.blankId === `blank-0`)
+      
+      if (!answer && answers[0]) {
+        answer = answers[0]
+      }
+      
+      const value = answer?.value?.trim() || '(empty)'
+      return `"${value}"`
+    } else {
+      // Multiple blanks: use concise numbered format
+      return blanks
+        .map((blank, index) => {
+          const blankId = blank.id || `blank-${index}`
+          let answer = answers.find(a => a.blankId === blankId || a.blankId === blank.id || a.blankId === `blank-${index}`)
+          
+          // Fallback: try by index if no ID match found
+          if (!answer && answers[index]) {
+            answer = answers[index]
+          }
+          
+          const value = answer?.value?.trim() || '(empty)'
+          return `${index + 1}:"${value}"`
+        })
+        .join(' • ')
+    }
   },
 
   formatCorrectAnswer: (question: GeneratedQuestion): string => {
     const completionQuestion = question as CompletionQuestion
     const blanks = completionQuestion.content.blanks.sort((a, b) => a.position - b.position)
     
-    return blanks
-      .map((blank, index) => {
-        // Handle different acceptable answer formats
-        let correctAnswer = ''
-        if (blank.acceptedAnswers && Array.isArray(blank.acceptedAnswers) && blank.acceptedAnswers.length > 0) {
-          correctAnswer = blank.acceptedAnswers[0]
-          const additionalCount = blank.acceptedAnswers.length - 1
-          if (additionalCount > 0) {
-            correctAnswer += ` (+ ${additionalCount} more)`
-          }
-        } else if ((blank as any).answer) {
-          // AI-generated format
-          correctAnswer = (blank as any).answer
-          if ((blank as any).alternatives && Array.isArray((blank as any).alternatives) && (blank as any).alternatives.length > 0) {
-            correctAnswer += ` (+ ${(blank as any).alternatives.length} more)`
-          }
-        } else {
-          correctAnswer = '???'
+    if (blanks.length === 1) {
+      // Single blank: show main answer with alternatives count
+      const blank = blanks[0]
+      let correctAnswer = ''
+      let alternativesCount = 0
+      
+      if (blank.acceptedAnswers && Array.isArray(blank.acceptedAnswers) && blank.acceptedAnswers.length > 0) {
+        correctAnswer = blank.acceptedAnswers[0]
+        alternativesCount = blank.acceptedAnswers.length - 1
+      } else if ((blank as any).answer) {
+        // AI-generated format
+        correctAnswer = (blank as any).answer
+        if ((blank as any).alternatives && Array.isArray((blank as any).alternatives)) {
+          alternativesCount = (blank as any).alternatives.length
         }
-        
-        return `Blank ${index + 1}: "${correctAnswer}"`
-      })
-      .join(' • ')
+      } else {
+        correctAnswer = '???'
+      }
+      
+      return alternativesCount > 0 
+        ? `"${correctAnswer}" (+${alternativesCount} more)`
+        : `"${correctAnswer}"`
+    } else {
+      // Multiple blanks: use concise numbered format
+      return blanks
+        .map((blank, index) => {
+          let correctAnswer = ''
+          if (blank.acceptedAnswers && Array.isArray(blank.acceptedAnswers) && blank.acceptedAnswers.length > 0) {
+            correctAnswer = blank.acceptedAnswers[0]
+          } else if ((blank as any).answer) {
+            correctAnswer = (blank as any).answer
+          } else {
+            correctAnswer = '???'
+          }
+          
+          return `${index + 1}:"${correctAnswer}"`
+        })
+        .join(' • ')
+    }
   },
 
   formatExplanation: (question: GeneratedQuestion, evaluation: QuestionEvaluationResult): string => {
