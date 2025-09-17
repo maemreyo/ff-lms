@@ -254,7 +254,8 @@ export class QuestionGenerator {
       messages,
       config,
       difficulty,
-      targetQuestionCount
+      targetQuestionCount,
+      options?.previousQuestions || []
     );
 
     return {
@@ -450,94 +451,65 @@ export class QuestionGenerator {
     messages: ChatMessage[],
     config: any,
     difficulty: string,
-    targetQuestionCount: number
+    targetQuestionCount: number,
+    previousQuestions: GeneratedQuestion[] = []
   ): Promise<any[]> {
+    const retryConfig = {
+      maxAttempts: 5,
+      baseDelay: 1000, // 1 second base delay
+      delayMultiplier: 1.5, // Progressive delay multiplier
+      minSuccessRate: 0.5 // Minimum 50% success rate to accept partial results
+    };
+
     let attempts = 0;
-    const maxAttempts = 3;
     let finalQuestions: any[] = [];
     let totalGenerated = 0;
 
     while (
-      attempts < maxAttempts &&
+      attempts < retryConfig.maxAttempts &&
       finalQuestions.length < targetQuestionCount
     ) {
       attempts++;
 
       try {
+        // Add progressive delay to avoid rate limits (skip delay on first attempt)
+        if (attempts > 1) {
+          const delay = this.calculateRetryDelay(attempts, retryConfig.baseDelay, retryConfig.delayMultiplier);
+          console.log(`⏳ Waiting ${delay}ms before attempt ${attempts}...`);
+          await this.sleep(delay);
+        }
+
         // Calculate how many questions we still need
         const questionsNeeded = targetQuestionCount - finalQuestions.length;
 
-        // For attempts 2+, be more explicit about what we need
-        const adjustedMessages = [...messages];
-        if (attempts > 1) {
-          const systemPrompt = adjustedMessages[0].content;
-          const userPrompt = adjustedMessages[1].content;
-
-          adjustedMessages[1].content = `${userPrompt}\n\n🚨 CRITICAL: You MUST generate exactly ${questionsNeeded} questions with difficulty level "${difficulty}". Previous attempts generated insufficient questions. Ensure each question has proper structure with 4 options A-D and matches the requested difficulty level exactly.`;
-
-          // Also enhance system prompt for clarity
-          adjustedMessages[0].content = `${systemPrompt}\n\nIMPORTANT: Generate exactly the requested number of questions. Each question must have difficulty level "${difficulty}". Return valid JSON with questions array containing exactly ${questionsNeeded} questions.`;
-        }
-
-        const response = await this.provider.chat(adjustedMessages, {
-          ...config,
-          temperature: Math.max(
-            0.1,
-            (config.temperature || 0.3) - (attempts - 1) * 0.05
-          ), // Reduce randomness with each attempt
-        });
-
-        const { PromptManager } = await import("../ai-prompts");
-        const parsedResponse = PromptManager.parseJSONResponse(
-          response.content
-        );
-
-        // Validate response structure
-        if (
-          !parsedResponse.questions ||
-          !Array.isArray(parsedResponse.questions)
-        ) {
-          throw new Error("AI response missing questions array");
-        }
-
-        const questions = parsedResponse.questions;
-        totalGenerated += questions.length;
-
-        // Filter questions by the correct difficulty level and validate structure
-        const correctDifficultyQuestions = AIUtils.filterValidQuestions(
-          questions,
+        // Prepare enhanced messages for retry attempts
+        const adjustedMessages = this.prepareRetryMessages(
+          messages, 
+          attempts, 
+          questionsNeeded, 
           difficulty
         );
 
-        // Add new questions to our collection, avoiding duplicates
-        for (const newQuestion of correctDifficultyQuestions) {
-          if (finalQuestions.length >= targetQuestionCount) break;
+        // Make AI request with adjusted temperature
+        const response = await this.makeAIRequest(adjustedMessages, config, attempts);
+        
+        const { PromptManager } = await import("../ai-prompts");
+        const parsedResponse = PromptManager.parseJSONResponse(response.content);
 
-          // Enhanced duplicate check based on question text similarity
-          // Handle both multiple-choice and completion question formats
-          const getQuestionText = (q: any) => {
-            if (q.question) {
-              return q.question.toLowerCase().trim();
-            } else if (q.transcript) {
-              // For completion questions, use transcript as the identifying text
-              return q.transcript.toLowerCase().trim();
-            }
-            return '';
-          };
+        // Validate and process response
+        const processedQuestions = await this.processAIResponse(
+          parsedResponse,
+          difficulty,
+          finalQuestions,
+          previousQuestions,
+          questionsNeeded
+        );
 
-          const questionText = getQuestionText(newQuestion);
-          const isDuplicate = finalQuestions.some((existing) => {
-            const existingText = getQuestionText(existing);
-            return AIUtils.areQuestionsDuplicate(existingText, questionText);
-          });
-
-          if (!isDuplicate) {
-            finalQuestions.push(newQuestion);
-          }
-        }
+        finalQuestions.push(...processedQuestions.newQuestions);
+        totalGenerated += processedQuestions.totalGenerated;
 
         console.log(
-          `Attempt ${attempts}: Generated ${questions.length} total, ${correctDifficultyQuestions.length} valid ${difficulty} questions, collected: ${finalQuestions.length}/${targetQuestionCount}`
+          `Attempt ${attempts}: Generated ${processedQuestions.totalGenerated} total, ${processedQuestions.validQuestions} valid ${difficulty} questions, collected: ${finalQuestions.length}/${targetQuestionCount}`
         );
 
         // If we have enough questions, break out of the loop
@@ -545,49 +517,259 @@ export class QuestionGenerator {
           break;
         }
 
-        // If we're consistently getting wrong difficulty or poor quality, adjust approach
-        if (attempts >= 2 && correctDifficultyQuestions.length === 0) {
+        // Check for consistent failures and provide warnings
+        if (attempts >= 3 && processedQuestions.validQuestions === 0) {
           console.warn(
             `Attempt ${attempts}: No valid ${difficulty} questions generated. AI may be struggling with difficulty requirement.`
           );
         }
+
       } catch (error: any) {
         console.warn(`Attempt ${attempts} failed:`, error.message);
-        if (attempts === maxAttempts) {
-          // If we have some questions but not enough, use what we have
-          if (finalQuestions.length > 0) {
-            console.warn(
-              `Using ${finalQuestions.length} questions instead of requested ${targetQuestionCount} after ${maxAttempts} attempts`
-            );
-            break;
-          }
-          throw new Error(
-            `Question generation failed after ${maxAttempts} attempts: ${error.message}`
+        
+        if (attempts === retryConfig.maxAttempts) {
+          return this.handleFinalFailure(
+            finalQuestions, 
+            targetQuestionCount, 
+            difficulty, 
+            previousQuestions, 
+            retryConfig.maxAttempts, 
+            error
           );
         }
       }
     }
 
-    // Take only the target number of questions
-    finalQuestions = finalQuestions.slice(0, targetQuestionCount);
+    return this.finalizeFinalQuestions(finalQuestions, targetQuestionCount, difficulty, retryConfig.minSuccessRate);
+  }
 
-    if (finalQuestions.length === 0) {
+  /**
+   * Calculate progressive delay for retry attempts
+   */
+  private calculateRetryDelay(attempt: number, baseDelay: number, multiplier: number): number {
+    return Math.floor(baseDelay * Math.pow(multiplier, attempt - 2));
+  }
+
+  /**
+   * Sleep utility for delays
+   */
+  private sleep(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+
+  /**
+   * Prepare enhanced messages for retry attempts with creative prompting
+   */
+  private prepareRetryMessages(
+    originalMessages: ChatMessage[], 
+    attempt: number, 
+    questionsNeeded: number, 
+    difficulty: string
+  ): ChatMessage[] {
+    if (attempt === 1) {
+      return [...originalMessages];
+    }
+
+    const adjustedMessages = [...originalMessages];
+    const systemPrompt = adjustedMessages[0].content;
+    const userPrompt = adjustedMessages[1].content;
+
+    // Progressive creativity enhancement for each attempt
+    const creativityPrompts = this.getCreativityPrompts(attempt, questionsNeeded, difficulty);
+    
+    adjustedMessages[1].content = `${userPrompt}\n\n${creativityPrompts.userEnhancement}`;
+    adjustedMessages[0].content = `${systemPrompt}\n\n${creativityPrompts.systemEnhancement}`;
+
+    return adjustedMessages;
+  }
+
+  /**
+   * Get creativity prompts based on attempt number
+   */
+  private getCreativityPrompts(attempt: number, questionsNeeded: number, difficulty: string) {
+    const attemptStrategies = {
+      2: {
+        userEnhancement: `🚨 CRITICAL: Previous attempt had too many duplicate questions. You MUST be MORE CREATIVE and find COMPLETELY DIFFERENT aspects of the content to ask about. Generate exactly ${questionsNeeded} questions with difficulty level "${difficulty}". Try different question types (vocabulary, tone, inference, main idea) and different parts of the transcript.`,
+        systemEnhancement: `IMPORTANT: Generate exactly the requested number of questions. Each question must have difficulty level "${difficulty}". Be creative to avoid duplicates - explore different aspects, question types, and content angles.`
+      },
+      3: {
+        userEnhancement: `🚨 ATTEMPT 3: Previous attempts failed due to duplicates. BE EXTREMELY CREATIVE and ask about:\n- Different speaker emotions/attitudes\n- Vocabulary meanings in context\n- Song structure/repetition patterns\n- Metaphorical interpretations\n- Different timeframes/verses\n- Literary devices used\n\nGenerate exactly ${questionsNeeded} questions with difficulty level "${difficulty}". Focus on COMPLETELY UNEXPLORED aspects of the content.`,
+        systemEnhancement: `CRITICAL: This is attempt 3. Generate exactly ${questionsNeeded} questions with maximum creativity. Each question must be unique and explore different content angles. Use diverse question types and focus on unexplored aspects.`
+      },
+      4: {
+        userEnhancement: `🚨 ATTEMPT 4: Maximum creativity required. Explore these ADVANCED angles:\n- Implicit meanings and subtext\n- Cultural or contextual references\n- Emotional progression throughout the content\n- Symbolic interpretations\n- Comparative analysis within the content\n- Stylistic choices and their effects\n\nGenerate exactly ${questionsNeeded} questions with difficulty level "${difficulty}". Think outside the box!`,
+        systemEnhancement: `MAXIMUM CREATIVITY REQUIRED: This is attempt 4. Generate exactly ${questionsNeeded} highly creative questions. Focus on advanced analysis, implicit meanings, and unique perspectives. Each question must be distinctly different.`
+      },
+      5: {
+        userEnhancement: `🚨 FINAL ATTEMPT: Use ANY creative approach necessary:\n- Abstract interpretations\n- Cross-referential analysis\n- Philosophical implications\n- Artistic techniques\n- Personal response questions\n- Hypothetical scenarios based on content\n\nGenerate exactly ${questionsNeeded} questions with difficulty level "${difficulty}". This is the last chance - be maximally creative and unique!`,
+        systemEnhancement: `FINAL ATTEMPT: Generate exactly ${questionsNeeded} questions using maximum creativity. Accept any valid interpretation or angle. Each question must be unique. Prioritize uniqueness over perfection.`
+      }
+    };
+
+    return attemptStrategies[attempt as keyof typeof attemptStrategies] || attemptStrategies[5];
+  }
+
+  /**
+   * Make AI request with adjusted temperature based on attempt
+   */
+  private async makeAIRequest(messages: ChatMessage[], config: any, attempt: number) {
+    const adjustedTemperature = Math.max(
+      0.1,
+      (config.temperature || 0.3) + (attempt - 1) * 0.1 // Increase creativity with each attempt
+    );
+
+    return await this.provider.chat(messages, {
+      ...config,
+      temperature: adjustedTemperature,
+    });
+  }
+
+  /**
+   * Process AI response and filter for valid, non-duplicate questions
+   */
+  private async processAIResponse(
+    parsedResponse: any,
+    difficulty: string,
+    finalQuestions: any[],
+    previousQuestions: GeneratedQuestion[],
+    questionsNeeded: number
+  ) {
+    // Validate response structure
+    if (!parsedResponse.questions || !Array.isArray(parsedResponse.questions)) {
+      throw new Error("AI response missing questions array");
+    }
+
+    const questions = parsedResponse.questions;
+    const correctDifficultyQuestions = AIUtils.filterValidQuestions(questions, difficulty);
+    const newQuestions: any[] = [];
+
+    // Add new questions to our collection, avoiding duplicates
+    for (const newQuestion of correctDifficultyQuestions) {
+      if (newQuestions.length >= questionsNeeded) break;
+
+      const questionText = this.extractQuestionText(newQuestion);
+      
+      if (this.isQuestionUnique(questionText, finalQuestions, previousQuestions)) {
+        newQuestions.push(newQuestion);
+      } else {
+        console.log(`🚫 Skipping duplicate question (matches previous): "${questionText.substring(0, 60)}..."`);
+      }
+    }
+
+    return {
+      newQuestions,
+      totalGenerated: questions.length,
+      validQuestions: correctDifficultyQuestions.length
+    };
+  }
+
+  /**
+   * Extract question text for comparison (handles both multiple-choice and completion formats)
+   */
+  private extractQuestionText(question: any): string {
+    if (question.question) {
+      return question.question.toLowerCase().trim();
+    } else if (question.transcript) {
+      // For completion questions, use transcript as the identifying text
+      return question.transcript.toLowerCase().trim();
+    }
+    return '';
+  }
+
+  /**
+   * Check if question is unique compared to existing questions
+   */
+  private isQuestionUnique(
+    questionText: string, 
+    finalQuestions: any[], 
+    previousQuestions: GeneratedQuestion[]
+  ): boolean {
+    // Check for duplicates against current generation
+    const isDuplicateInCurrent = finalQuestions.some((existing) => {
+      const existingText = this.extractQuestionText(existing);
+      return AIUtils.areQuestionsDuplicate(existingText, questionText);
+    });
+
+    // Check for duplicates against previous questions from earlier difficulty levels
+    const isDuplicateInPrevious = previousQuestions.some((existing) => {
+      const existingText = this.extractQuestionText(existing);
+      return AIUtils.areQuestionsDuplicate(existingText, questionText);
+    });
+
+    return !isDuplicateInCurrent && !isDuplicateInPrevious;
+  }
+
+  /**
+   * Handle final failure cases with appropriate error messages
+   */
+  private handleFinalFailure(
+    finalQuestions: any[],
+    targetQuestionCount: number,
+    difficulty: string,
+    previousQuestions: GeneratedQuestion[],
+    maxAttempts: number,
+    error: any
+  ): any[] {
+    // If we have some questions but not enough, use what we have
+    if (finalQuestions.length > 0) {
+      console.warn(
+        `Using ${finalQuestions.length} questions instead of requested ${targetQuestionCount} after ${maxAttempts} attempts`
+      );
+      return finalQuestions;
+    }
+
+    // If we have previous questions and this is a hard difficulty, it might be acceptable to skip
+    if (previousQuestions.length > 0 && difficulty === 'hard') {
+      console.warn(
+        `⚠️ Could not generate any new ${difficulty} questions due to extensive duplicates. This may be acceptable if there's limited content diversity for this difficulty level.`
+      );
       throw new Error(
-        `Failed to generate any valid ${difficulty} questions after ${maxAttempts} attempts (total AI responses: ${totalGenerated})`
+        `No unique ${difficulty} questions available - content may be too limited for this difficulty level`
       );
     }
 
-    if (finalQuestions.length < targetQuestionCount) {
-      console.warn(
-        `Generated ${finalQuestions.length} out of ${targetQuestionCount} requested ${difficulty} questions after ${attempts} attempts`
+    throw new Error(
+      `Question generation failed after ${maxAttempts} attempts: ${error.message}`
+    );
+  }
+
+  /**
+   * Finalize and validate the final questions collection
+   */
+  private finalizeFinalQuestions(
+    finalQuestions: any[], 
+    targetQuestionCount: number, 
+    difficulty: string, 
+    minSuccessRate: number
+  ): any[] {
+    // Take only the target number of questions
+    const trimmedQuestions = finalQuestions.slice(0, targetQuestionCount);
+
+    if (trimmedQuestions.length === 0) {
+      throw new Error(
+        `Failed to generate any valid ${difficulty} questions after maximum attempts`
       );
+    }
+
+    if (trimmedQuestions.length < targetQuestionCount) {
+      const successRate = trimmedQuestions.length / targetQuestionCount;
+      
+      if (successRate >= minSuccessRate) {
+        console.warn(
+          `✅ Partial success: Generated ${trimmedQuestions.length} out of ${targetQuestionCount} requested ${difficulty} questions (${Math.round(successRate * 100)}%)`
+        );
+      } else {
+        console.warn(
+          `⚠️ Low success rate: Generated only ${trimmedQuestions.length} out of ${targetQuestionCount} requested ${difficulty} questions (${Math.round(successRate * 100)}%)`
+        );
+      }
     }
 
     console.log(
-      `Generated ${finalQuestions.length} ${difficulty} questions (requested: ${targetQuestionCount})`
+      `Generated ${trimmedQuestions.length} ${difficulty} questions (requested: ${targetQuestionCount})`
     );
 
-    return finalQuestions;
+    return trimmedQuestions;
   }
 
   /**

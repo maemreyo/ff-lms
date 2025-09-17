@@ -207,7 +207,18 @@ export function MultipleChoicePreview({
 }) {
   return (
     <div>
-      <p className="mb-4 text-base text-gray-800">{question.question}</p>
+      {/* Question Text with Timeframe Support */}
+      <div className="mb-4 text-base text-gray-800">
+        {videoUrl ? (
+          <ExplanationWithTimeframes
+            explanation={question.question}
+            videoUrl={videoUrl}
+            className="text-base text-gray-800"
+          />
+        ) : (
+          <p>{question.question}</p>
+        )}
+      </div>
 
       <div className="space-y-2">
         {question.content.options.map((option, index) => {

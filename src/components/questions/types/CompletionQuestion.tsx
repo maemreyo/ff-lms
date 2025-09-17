@@ -254,7 +254,18 @@ export function CompletionPreview({
 
   return (
     <div>
-      <p className="mb-4 text-base text-gray-800">{question.question}</p>
+      {/* Question Text with Timeframe Support */}
+      <div className="mb-4 text-base text-gray-800">
+        {videoUrl ? (
+          <ExplanationWithTimeframes
+            explanation={question.question}
+            videoUrl={videoUrl}
+            className="text-base text-gray-800"
+          />
+        ) : (
+          <p>{question.question}</p>
+        )}
+      </div>
 
       <div className="mb-4 p-4 bg-gray-50 rounded-lg border">
         <p className="text-gray-800 leading-relaxed font-mono">

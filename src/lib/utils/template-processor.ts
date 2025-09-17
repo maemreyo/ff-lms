@@ -12,7 +12,7 @@ export class TemplateProcessor {
     let result = template
 
     // Handle {{#if condition}} blocks
-    result = result.replace(/\{\{#if\s+(\w+)\}\}([\s\S]*?)\{\{\/if\}\}/g, (match, condition, content) => {
+    result = result.replace(/\{\{#if\s+(\w+)\}\}([\s\S]*?)\{\{\/if\}\}/g, (_, condition, content) => {
       const value = data[condition]
       if (value && (Array.isArray(value) ? value.length > 0 : Boolean(value))) {
         return this.processInnerContent(content, data)
@@ -21,7 +21,7 @@ export class TemplateProcessor {
     })
 
     // Handle {{#each array}} blocks
-    result = result.replace(/\{\{#each\s+(\w+)\}\}([\s\S]*?)\{\{\/each\}\}/g, (match, arrayName, content) => {
+    result = result.replace(/\{\{#each\s+(\w+)\}\}([\s\S]*?)\{\{\/each\}\}/g, (_, arrayName, content) => {
       const array = data[arrayName]
       if (Array.isArray(array)) {
         return array.map((item, index) => {
@@ -32,7 +32,7 @@ export class TemplateProcessor {
     })
 
     // Handle simple variable substitutions
-    result = result.replace(/\{\{(\w+)\}\}/g, (match, variable) => {
+    result = result.replace(/\{\{(\w+)\}\}/g, (_, variable) => {
       return String(data[variable] || '')
     })
 
@@ -41,7 +41,7 @@ export class TemplateProcessor {
 
   private static processInnerContent(content: string, data: TemplateData): string {
     // Process nested {{#each}} within {{#if}} blocks
-    let result = content.replace(/\{\{#each\s+(\w+)\}\}([\s\S]*?)\{\{\/each\}\}/g, (match, arrayName, innerContent) => {
+    let result = content.replace(/\{\{#each\s+(\w+)\}\}([\s\S]*?)\{\{\/each\}\}/g, (_, arrayName, innerContent) => {
       const array = data[arrayName]
       if (Array.isArray(array)) {
         return array.map((item, index) => {
@@ -52,7 +52,7 @@ export class TemplateProcessor {
     })
 
     // Handle simple variables in inner content
-    result = result.replace(/\{\{(\w+)\}\}/g, (match, variable) => {
+    result = result.replace(/\{\{(\w+)\}\}/g, (_, variable) => {
       return String(data[variable] || '')
     })
 
@@ -60,11 +60,29 @@ export class TemplateProcessor {
   }
 
   private static processEachItem(content: string, item: any, index: number): string {
-    return content
-      .replace(/\{\{@index\}\}/g, index.toString())
-      .replace(/\{\{this\.(\w+)\}\}/g, (match, property) => {
-        return String(item[property] || '')
-      })
-      .replace(/\{\{this\}\}/g, String(item))
+    let result = content
+
+    // Handle {{@index}}
+    result = result.replace(/\{\{@index\}\}/g, index.toString())
+
+    // Handle {{this.property}} with nested object support
+    result = result.replace(/\{\{this\.(\w+(?:\.\w+)*)\}\}/g, (_, property) => {
+      const value = this.getNestedProperty(item, property)
+      return String(value || '')
+    })
+
+    // Handle {{this}}
+    result = result.replace(/\{\{this\}\}/g, String(item))
+
+    return result
+  }
+
+  /**
+   * Get nested property from object (e.g., 'a.b.c' from {a: {b: {c: 'value'}}})
+   */
+  private static getNestedProperty(obj: any, path: string): any {
+    return path.split('.').reduce((current, property) => {
+      return current && current[property] !== undefined ? current[property] : undefined
+    }, obj)
   }
 }
