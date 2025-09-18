@@ -840,8 +840,8 @@ export function useGroupQuiz({ groupId, sessionId }: UseGroupQuizProps) {
     console.log("Final results with videoUrl:", finalResults);
   };
 
-  const handleAnswerSelect = (questionIndex: number, answer: string) => {
-    const newResponse: QuestionResponse = { questionIndex, answer };
+  const handleAnswerSelect = (questionIndex: number, response: QuestionResponse) => {
+    const newResponse: QuestionResponse = { ...response, questionIndex };
     setResponses((prev) => [
       ...prev.filter((r) => r.questionIndex !== questionIndex),
       newResponse,

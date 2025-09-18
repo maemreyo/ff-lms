@@ -23,7 +23,7 @@ export interface QuestionComponentProps<T extends GeneratedQuestion = GeneratedQ
   currentSetIndex: number
   totalSets: number
   responses: QuestionResponse[]
-  onAnswerSelect: (questionIndex: number, answer: any) => void
+  onAnswerSelect: (questionIndex: number, response: QuestionResponse) => void
   showResults?: boolean
   evaluationResult?: QuestionEvaluationResult
   enableWordSelection?: boolean

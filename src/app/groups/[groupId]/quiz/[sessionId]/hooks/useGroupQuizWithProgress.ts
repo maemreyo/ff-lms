@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useProgressTracking } from '../../../../../../hooks/useProgressTracking'
 import type { ProgressUpdatePayload } from '../../../../../../lib/services/progress-tracking-service'
+import type { QuestionResponse } from '../../../../../../lib/types/question-types'
 import { useGroupQuiz } from './useGroupQuiz'
 
 interface UseGroupQuizWithProgressProps {
@@ -140,9 +141,9 @@ export function useGroupQuizWithProgress({ groupId, sessionId }: UseGroupQuizWit
 
   // Simple handleAnswerSelect - no progress tracking here
   const handleAnswerSelectWithProgress = useCallback(
-    (questionIndex: number, answer: string) => {
+    (questionIndex: number, response: QuestionResponse) => {
       // Just call original handler, no progress update
-      groupQuizData.handleAnswerSelect(questionIndex, answer)
+      ;(groupQuizData.handleAnswerSelect as unknown as (questionIndex: number, response: QuestionResponse) => void)(questionIndex, response)
     },
     [groupQuizData.handleAnswerSelect]
   )

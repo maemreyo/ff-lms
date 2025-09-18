@@ -14,6 +14,7 @@ import { QuestionNavigationBar } from './QuestionNavigationBar'
 import { QuestionFactory } from '../../../../../../components/questions/QuestionFactory'
 import { autoMigrateQuestion } from '../../../../../../lib/utils/question-migration'
 import { QuestionResponse } from '../../../../../../lib/types/question-types'
+import { useResponseHandler } from '../hooks/useResponseHandler'
 import '../../../../../../lib/registry' // Initialize question type registry
 
 interface GroupQuizActiveViewProps {
@@ -23,7 +24,7 @@ interface GroupQuizActiveViewProps {
     groupData: any
   } | null
   responses: Array<{ questionIndex: number; answer: string }> | QuestionResponse[]
-  onAnswerSelect: (questionIndex: number, answer: string) => void
+  onAnswerSelect: (questionIndex: number, response: QuestionResponse) => void
   onNextQuestion: () => void
   onSubmitSet: () => void
   onMoveToNextSet: () => void
@@ -83,6 +84,9 @@ export function GroupQuizActiveView({
   const [countdownSeconds, setCountdownSeconds] = useState<number>(3)
   const timerRef = useRef<NodeJS.Timeout | null>(null)
   const countdownRef = useRef<NodeJS.Timeout | null>(null)
+
+  // Clean response handler - separated from UI logic
+  const { handleQuestionResponse } = useResponseHandler({ onAnswerSelect })
 
   // Start timer when component mounts
   useEffect(() => {
@@ -441,13 +445,7 @@ export function GroupQuizActiveView({
                 }
                 return r as QuestionResponse
               }) : []}
-              onAnswerSelect={(qIndex: number, response: QuestionResponse) => {
-                // Convert back to legacy format for compatibility
-                const legacyAnswer = response.questionType === 'multiple-choice'
-                  ? response.response.selectedOption
-                  : JSON.stringify(response.response)
-                onAnswerSelect(qIndex, legacyAnswer)
-              }}
+              onAnswerSelect={handleQuestionResponse}
               showResults={false}
               enableWordSelection={true}
             />

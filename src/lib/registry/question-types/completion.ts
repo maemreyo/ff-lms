@@ -49,7 +49,7 @@ function calculateCompletionScore(
 ): QuestionEvaluationResult {
   const blanks = question.content.blanks
 
-  // Handle different response formats
+  // Handle different response formats - optimized for new clean format
   let userAnswers: Array<{ blankId: string; value: string }> = []
   
   if (response.response && response.response.answers && Array.isArray(response.response.answers)) {
@@ -59,11 +59,15 @@ function calculateCompletionScore(
     // Alternative format: response.answers directly
     userAnswers = (response as any).answers
   } else if ((response as any).answer && typeof (response as any).answer === 'string') {
-    // JSON string format: response.answer contains stringified JSON
+    // Clean JSON format: response.answer contains optimized JSON string
     try {
       const parsedAnswer = JSON.parse((response as any).answer)
       if (parsedAnswer.answers && Array.isArray(parsedAnswer.answers)) {
         userAnswers = parsedAnswer.answers
+      } else {
+        // Legacy full object format fallback
+        console.warn('🔄 [Completion Score] Using legacy format fallback')
+        userAnswers = parsedAnswer
       }
     } catch (error) {
       console.warn('🚨 [Completion Score] Failed to parse JSON from response.answer:', error)

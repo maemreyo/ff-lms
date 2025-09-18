@@ -26,11 +26,14 @@ export const completionFormatter: ResultFormatter = {
       // Alternative format: response.answers directly
       answers = (completionResponse as any).answers
     } else if ((completionResponse as any).answer && typeof (completionResponse as any).answer === 'string') {
-      // JSON string format: response.answer contains stringified JSON
+      // Clean JSON format: response.answer contains optimized JSON string
       try {
         const parsedAnswer = JSON.parse((completionResponse as any).answer)
         if (parsedAnswer.answers && Array.isArray(parsedAnswer.answers)) {
           answers = parsedAnswer.answers
+        } else {
+          // Legacy full object format fallback
+          answers = parsedAnswer
         }
       } catch (error) {
         console.warn('🚨 [Completion Formatter] Failed to parse JSON from response.answer:', error)
