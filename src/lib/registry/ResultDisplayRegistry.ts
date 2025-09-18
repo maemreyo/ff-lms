@@ -10,9 +10,19 @@ import type {
   QuestionEvaluationResult
 } from '@/lib/types/question-types'
 
+/**
+ * Structured answer format for database storage
+ */
+export interface StructuredAnswer {
+  type: string // question type
+  raw: any // original response data
+  displayText: string // formatted display text for UI
+  metadata?: any // type-specific metadata
+}
+
 export interface ResultDisplayData {
-  userAnswer: string
-  correctAnswer: string
+  userAnswer: string | StructuredAnswer
+  correctAnswer: string | StructuredAnswer
   explanation: string
   isCorrect: boolean
   score: number
@@ -23,6 +33,9 @@ export interface ResultFormatter {
   formatUserAnswer: (question: GeneratedQuestion, response: QuestionResponse) => string
   formatCorrectAnswer: (question: GeneratedQuestion) => string
   formatExplanation: (question: GeneratedQuestion, evaluation: QuestionEvaluationResult) => string
+  // New methods for structured format
+  formatUserAnswerStructured?: (question: GeneratedQuestion, response: QuestionResponse) => StructuredAnswer
+  formatCorrectAnswerStructured?: (question: GeneratedQuestion) => StructuredAnswer
 }
 
 /**
@@ -68,6 +81,31 @@ export class ResultDisplayRegistry {
       isCorrect: evaluation.isCorrect,
       score: evaluation.score
     }
+  }
+
+  /**
+   * Format results with structured answers for database storage
+   */
+  static formatResultStructured(
+    question: GeneratedQuestion,
+    response: QuestionResponse,
+    evaluation: QuestionEvaluationResult
+  ): ResultDisplayData {
+    const formatter = this.formatters.get(question.type)
+
+    if (formatter && formatter.formatUserAnswerStructured && formatter.formatCorrectAnswerStructured) {
+      return {
+        userAnswer: formatter.formatUserAnswerStructured(question, response),
+        correctAnswer: formatter.formatCorrectAnswerStructured(question),
+        explanation: formatter.formatExplanation(question, evaluation),
+        isCorrect: evaluation.isCorrect,
+        score: evaluation.score,
+        details: evaluation.partialCredit
+      }
+    }
+
+    // Fallback to regular formatting if structured not available
+    return this.formatResult(question, response, evaluation)
   }
 
   /**

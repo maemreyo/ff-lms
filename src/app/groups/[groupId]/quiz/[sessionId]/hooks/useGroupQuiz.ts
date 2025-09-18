@@ -723,8 +723,8 @@ export function useGroupQuiz({ groupId, sessionId }: UseGroupQuizProps) {
             totalCorrect++;
           }
 
-          // Use the result display registry to format answers cleanly
-          const resultDisplay = ResultDisplayRegistry.formatResult(
+          // Use the result display registry to format answers with structured format
+          const resultDisplay = ResultDisplayRegistry.formatResultStructured(
             question as GeneratedQuestion,
             response,
             evaluation

@@ -2,6 +2,7 @@
 
 import React from 'react'
 import { CheckCircle, Clock, Play, TrendingUp, XCircle } from 'lucide-react'
+import { StructuredAnswer } from '@/lib/registry/ResultDisplayRegistry'
 import {
   formatVideoTimestamp,
   getVideoLink,
@@ -13,11 +14,21 @@ import { Button } from '../../../ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../../../ui/card'
 import { Separator } from '../../../ui/separator'
 
+/**
+ * Helper function to extract display text from structured or string answers
+ */
+function getDisplayText(answer: string | StructuredAnswer): string {
+  if (typeof answer === 'string') {
+    return answer
+  }
+  return answer.displayText
+}
+
 interface QuestionResult {
   questionId: string
   question: string
-  userAnswer: string
-  correctAnswer: string
+  userAnswer: string | StructuredAnswer
+  correctAnswer: string | StructuredAnswer
   isCorrect: boolean
   explanation?: string
   timeStart?: number
@@ -218,7 +229,7 @@ export function QuestionReviewList({
                               result.isCorrect ? 'text-green-700' : 'text-red-700'
                             }`}
                           >
-                            {result.userAnswer}
+                            {getDisplayText(result.userAnswer)}
                           </p>
                         </div>
 
@@ -232,7 +243,7 @@ export function QuestionReviewList({
                               <CheckCircle className="h-4 w-4 text-green-600" />
                             </div>
                             <p className="text-sm font-medium text-green-700">
-                              {result.correctAnswer}
+                              {getDisplayText(result.correctAnswer)}
                             </p>
                           </div>
                         )}

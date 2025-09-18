@@ -2,11 +2,21 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getSupabaseServer, getCurrentUserServer } from '@/lib/supabase/server'
 import { corsResponse, corsHeaders } from '@/lib/cors'
 import { QuestionTypeRegistry } from '@/lib/registry/QuestionTypeRegistry'
-import { ResultDisplayRegistry } from '@/lib/registry/ResultDisplayRegistry'
+import { ResultDisplayRegistry, StructuredAnswer } from '@/lib/registry/ResultDisplayRegistry'
 import type {
   GeneratedQuestion,
   QuestionResponse as NewQuestionResponse
 } from '@/lib/types/question-types'
+
+/**
+ * Helper function to convert structured answers to display text for backward compatibility
+ */
+function getDisplayText(answer: string | StructuredAnswer): string {
+  if (typeof answer === 'string') {
+    return answer
+  }
+  return answer.displayText
+}
 
 // Import question type registrations to ensure they're loaded
 import '@/lib/registry/question-types/multiple-choice'
@@ -118,7 +128,8 @@ export async function GET(
                 matchingResponse as unknown as NewQuestionResponse
               )
 
-              const resultDisplay = ResultDisplayRegistry.formatResult(
+              // Use structured format for better data storage and display flexibility
+              const resultDisplay = ResultDisplayRegistry.formatResultStructured(
                 question as GeneratedQuestion,
                 matchingResponse as unknown as NewQuestionResponse,
                 evaluation
@@ -127,8 +138,8 @@ export async function GET(
               return {
                 questionId: rawResult.questionId || `q_${rawResult.questionIndex}`,
                 question: question.question || rawResult.question,
-                userAnswer: resultDisplay.userAnswer,
-                correctAnswer: resultDisplay.correctAnswer,
+                userAnswer: resultDisplay.userAnswer, // Can be string or StructuredAnswer
+                correctAnswer: resultDisplay.correctAnswer, // Can be string or StructuredAnswer
                 isCorrect: resultDisplay.isCorrect,
                 explanation: resultDisplay.explanation,
                 points: resultDisplay.score,

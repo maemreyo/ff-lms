@@ -9,7 +9,7 @@ import type {
   CompletionQuestion,
   CompletionResponse
 } from '@/lib/types/question-types'
-import type { ResultFormatter } from '../ResultDisplayRegistry'
+import type { ResultFormatter, StructuredAnswer } from '../ResultDisplayRegistry'
 
 export const completionFormatter: ResultFormatter = {
   formatUserAnswer: (question: GeneratedQuestion, response: QuestionResponse): string => {
@@ -128,5 +128,134 @@ export const completionFormatter: ResultFormatter = {
 
   formatExplanation: (question: GeneratedQuestion, evaluation: QuestionEvaluationResult): string => {
     return evaluation.feedback || question.explanation || 'No explanation available'
+  },
+
+  // Structured format methods
+  formatUserAnswerStructured: (question: GeneratedQuestion, response: QuestionResponse): StructuredAnswer => {
+    const completionQuestion = question as CompletionQuestion
+    const completionResponse = response as CompletionResponse
+
+    // Extract answers using same logic as formatUserAnswer
+    let answers: Array<{ blankId: string; value: string }> = []
+
+    if (completionResponse.response && completionResponse.response.answers && Array.isArray(completionResponse.response.answers)) {
+      answers = completionResponse.response.answers
+    } else if ((completionResponse as any).answers && Array.isArray((completionResponse as any).answers)) {
+      answers = (completionResponse as any).answers
+    } else if ((completionResponse as any).answer && typeof (completionResponse as any).answer === 'string') {
+      try {
+        const parsedAnswer = JSON.parse((completionResponse as any).answer)
+        if (parsedAnswer.answers && Array.isArray(parsedAnswer.answers)) {
+          answers = parsedAnswer.answers
+        } else {
+          answers = parsedAnswer
+        }
+      } catch (error) {
+        console.warn('🚨 [Completion Structured Formatter] Failed to parse JSON from response.answer:', error)
+      }
+    } else if (completionResponse.response && Array.isArray(completionResponse.response)) {
+      answers = completionResponse.response
+    }
+
+    // Generate display text (reuse existing logic)
+    const blanks = completionQuestion.content.blanks.sort((a, b) => a.position - b.position)
+    let displayText = "No answer provided"
+
+    if (answers.length > 0) {
+      if (blanks.length === 1) {
+        const blankId = blanks[0].id || `blank-0`
+        let answer = answers.find(a => a.blankId === blankId || a.blankId === blanks[0].id || a.blankId === `blank-0`)
+
+        if (!answer && answers[0]) {
+          answer = answers[0]
+        }
+
+        const value = answer?.value?.trim() || '(empty)'
+        displayText = `"${value}"`
+      } else {
+        displayText = blanks
+          .map((blank, index) => {
+            const blankId = blank.id || `blank-${index}`
+            let answer = answers.find(a => a.blankId === blankId || a.blankId === blank.id || a.blankId === `blank-${index}`)
+
+            if (!answer && answers[index]) {
+              answer = answers[index]
+            }
+
+            const value = answer?.value?.trim() || '(empty)'
+            return `${index + 1}:"${value}"`
+          })
+          .join(' • ')
+      }
+    }
+
+    return {
+      type: 'completion',
+      raw: {
+        answers: answers,
+        originalResponse: completionResponse.response
+      },
+      displayText: displayText,
+      metadata: {
+        blankCount: blanks.length,
+        answeredCount: answers.length
+      }
+    }
+  },
+
+  formatCorrectAnswerStructured: (question: GeneratedQuestion): StructuredAnswer => {
+    const completionQuestion = question as CompletionQuestion
+    const blanks = completionQuestion.content.blanks.sort((a, b) => a.position - b.position)
+
+    // Extract structured correct answers
+    const correctAnswers = blanks.map((blank, index) => {
+      let mainAnswer = ''
+      let alternatives: string[] = []
+
+      if (blank.acceptedAnswers && Array.isArray(blank.acceptedAnswers) && blank.acceptedAnswers.length > 0) {
+        mainAnswer = blank.acceptedAnswers[0]
+        alternatives = blank.acceptedAnswers.slice(1)
+      } else if ((blank as any).answer) {
+        mainAnswer = (blank as any).answer
+        if ((blank as any).alternatives && Array.isArray((blank as any).alternatives)) {
+          alternatives = (blank as any).alternatives
+        }
+      } else {
+        mainAnswer = '???'
+      }
+
+      return {
+        blankId: blank.id || `blank-${index}`,
+        mainAnswer,
+        alternatives,
+        totalOptions: alternatives.length + 1
+      }
+    })
+
+    // Generate display text (reuse existing logic)
+    let displayText = ''
+    if (blanks.length === 1) {
+      const correct = correctAnswers[0]
+      displayText = correct.alternatives.length > 0
+        ? `"${correct.mainAnswer}" (+${correct.alternatives.length} more)`
+        : `"${correct.mainAnswer}"`
+    } else {
+      displayText = correctAnswers
+        .map((correct, index) => `${index + 1}:"${correct.mainAnswer}"`)
+        .join(' • ')
+    }
+
+    return {
+      type: 'completion',
+      raw: {
+        blanks: correctAnswers,
+        originalBlanks: blanks
+      },
+      displayText: displayText,
+      metadata: {
+        blankCount: blanks.length,
+        totalAlternatives: correctAnswers.reduce((sum, c) => sum + c.alternatives.length, 0)
+      }
+    }
   }
 }
