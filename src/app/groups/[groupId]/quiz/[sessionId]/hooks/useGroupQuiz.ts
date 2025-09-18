@@ -4,9 +4,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { QuestionPreset } from "../../../../../../components/questions/PresetSelector";
 import type { DifficultyGroup } from "../../../../../../components/questions/ProgressIndicator";
 import type {
-  Question,
   QuestionResponse,
-} from "../../../../../../components/questions/QuestionCard";
+} from "@/lib/types/question-types";
 import { useAuth } from "../../../../../../contexts/AuthContext";
 import { useQuizAuth } from "../../../../../../lib/hooks/use-quiz-auth";
 import { useSessionParticipants } from "../../../components/sessions/hooks/useSessionParticipants";
@@ -17,7 +16,6 @@ import { useSharedQuestions } from "./useSharedQuestions";
 import { QuestionTypeRegistry } from "@/lib/registry/QuestionTypeRegistry";
 import { ResultDisplayRegistry } from "@/lib/registry/ResultDisplayRegistry";
 import type {
-  QuestionResponse as NewQuestionResponse,
   GeneratedQuestion
 } from "@/lib/types/question-types";
 
@@ -457,7 +455,7 @@ export function useGroupQuiz({ groupId, sessionId }: UseGroupQuizProps) {
   ]);
 
   // Quiz functionality (reused from individual quiz)
-  const getAvailableQuestionCounts = useCallback((questions: Question[]) => {
+  const getAvailableQuestionCounts = useCallback((questions: any[]) => {
     return {
       easy: questions.filter((q) => q.difficulty === "easy").length,
       medium: questions.filter((q) => q.difficulty === "medium").length,
@@ -466,7 +464,7 @@ export function useGroupQuiz({ groupId, sessionId }: UseGroupQuizProps) {
   }, []);
 
   const createPresetGroups = useCallback(
-    (preset: QuestionPreset, questions: Question[]): DifficultyGroup[] => {
+    (preset: QuestionPreset, questions: any[]): DifficultyGroup[] => {
       const categorizedQuestions = {
         easy: questions.filter((q) => q.difficulty === "easy"),
         medium: questions.filter((q) => q.difficulty === "medium"),
@@ -506,7 +504,7 @@ export function useGroupQuiz({ groupId, sessionId }: UseGroupQuizProps) {
               // Shuffle answers while preserving correct answer mapping
               const originalOptions = question.options;
               const correctIndex = question.options.findIndex(
-                (_, index) =>
+                (_: any, index: number) =>
                   ["A", "B", "C", "D"][index] === question.correctAnswer
               );
               const correctOption = originalOptions[correctIndex];
@@ -545,7 +543,7 @@ export function useGroupQuiz({ groupId, sessionId }: UseGroupQuizProps) {
       }
 
       try {
-        let allQuestions: Question[] = [];
+        let allQuestions: any[] = [];
 
         if (shareTokens) {
           // Load questions from shareTokens
@@ -718,7 +716,7 @@ export function useGroupQuiz({ groupId, sessionId }: UseGroupQuizProps) {
           // Use the registry system to calculate score for any question type
           const evaluation = QuestionTypeRegistry.calculateScore(
             question as GeneratedQuestion,
-            response as unknown as NewQuestionResponse
+            response
           );
 
           if (evaluation.isCorrect || evaluation.score > 0) {
@@ -728,7 +726,7 @@ export function useGroupQuiz({ groupId, sessionId }: UseGroupQuizProps) {
           // Use the result display registry to format answers cleanly
           const resultDisplay = ResultDisplayRegistry.formatResult(
             question as GeneratedQuestion,
-            response as unknown as NewQuestionResponse,
+            response,
             evaluation
           );
 

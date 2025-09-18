@@ -1,0 +1,29 @@
+Kiểm tra API `api/groups/9f640f92-d11c-463d-b3a6-2df737c912f0/sessions/4f4e89f9-ba71-4da8-96f7-e2dd9af9cc9f/results`:
+```
+{
+    "message": "Result saved successfully",
+    "result": {
+        "id": "6854a3f5-3a85-4b8e-9e49-1af2fb7f8bef",
+        "session_id": "4f4e89f9-ba71-4da8-96f7-e2dd9af9cc9f",
+        "user_id": "39abb7b6-93ca-4f4c-b07b-1087f6224cb5",
+        "user_name": "Trung",
+        "score": 20,
+        "total_questions": 10,
+        "correct_answers": 2,
+        "time_taken_seconds": null,
+        "completed_at": "2025-09-18T02:22:30.169+00:00",
+        "result_data": {
+            "allResults": [
+                {
+                    "points": 1,
+                    "question": "In 479 BC, when Persian soldiers besieged the Greek city of Potidaea, the tide retreated much farther than usual, leaving ____ convenient invasion route.",
+                    "isCorrect": true,
+                    "questionId": "tsunami_grammar_1",
+                    "userAnswer": "\"a\"",
+                    "explanation": "Excellent! All blanks filled correctly.",
+                    "correctAnswer": "\"a\" (+3 more)"
+                },
+    ...
+```
+Field: `userAnswer` and `correctAnswer` đang lưu dạng string, có đúng không?
+Lúc submit đã handle lưu dạng chuẩn chưa? database, api đã update theo chưa? 

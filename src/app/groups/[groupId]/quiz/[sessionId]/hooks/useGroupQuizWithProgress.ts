@@ -10,6 +10,24 @@ interface UseGroupQuizWithProgressProps {
   sessionId: string
 }
 
+// Helper function to extract answer from different response types
+function extractAnswerFromResponse(response: QuestionResponse): string {
+  switch (response.questionType) {
+    case 'multiple-choice':
+      return response.response.selectedOption
+    case 'completion':
+      return response.response.answers.map(a => a.value).join(', ')
+    case 'short-answer':
+      return response.response.text
+    case 'matching':
+      return response.response.pairs.map(p => `${p.left}-${p.right}`).join(', ')
+    case 'diagram-labelling':
+      return response.response.labels.map(l => `${l.pointId}:${l.label}`).join(', ')
+    default:
+      return JSON.stringify(response.response)
+  }
+}
+
 export function useGroupQuizWithProgress({ groupId, sessionId }: UseGroupQuizWithProgressProps) {
   const groupQuizData = useGroupQuiz({ groupId, sessionId })
 
@@ -163,7 +181,7 @@ export function useGroupQuizWithProgress({ groupId, sessionId }: UseGroupQuizWit
           const q = groupQuizData.difficultyGroups
             .flatMap(g => g.questions)
             .find((_, idx) => idx === r.questionIndex)
-          return q && q.correctAnswer === r.answer
+          return q && q.correctAnswer === extractAnswerFromResponse(r)
         }).length
 
         const progressUpdate: ProgressUpdatePayload = {
@@ -171,12 +189,12 @@ export function useGroupQuizWithProgress({ groupId, sessionId }: UseGroupQuizWit
           currentSet: currentSet,
           totalAnswered: totalAnswered,
           correctAnswers: correctAnswers,
-          answer: currentResponse.answer,
+          answer: extractAnswerFromResponse(currentResponse),
           isCorrect: (() => {
             const q = groupQuizData.difficultyGroups
               .flatMap(g => g.questions)
               .find((_, idx) => idx === currentResponse.questionIndex)
-            return q ? q.correctAnswer === currentResponse.answer : false
+            return q ? q.correctAnswer === extractAnswerFromResponse(currentResponse) : false
           })(),
           timeSpent: 0,
           confidenceLevel: 'medium',
@@ -213,7 +231,7 @@ export function useGroupQuizWithProgress({ groupId, sessionId }: UseGroupQuizWit
         const q = groupQuizData.difficultyGroups
           .flatMap(g => g.questions)
           .find((_, idx) => idx === r.questionIndex)
-        return q && q.correctAnswer === r.answer
+        return q && q.correctAnswer === extractAnswerFromResponse(r)
       }).length
 
       const progressUpdate: ProgressUpdatePayload = {
